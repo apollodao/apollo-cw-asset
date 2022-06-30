@@ -50,7 +50,7 @@
 //! ## Use in messages
 //!
 //! [`Asset`] and [`AssetList`] each comes with an _unchecked_ counterpart which contains unverified
-//! addresses and/or denoms, and implements traits that allow them to be serialized into JSON, so 
+//! addresses and/or denoms, and implements traits that allow them to be serialized into JSON, so
 //! that they can be directly used in Cosmos messages:
 //!
 //! ```rust
@@ -86,11 +86,13 @@ mod asset;
 mod asset_info;
 mod asset_list;
 mod key;
+mod token;
 
 pub use asset::*;
 pub use asset_info::*;
 pub use asset_list::*;
 pub use key::*;
+pub use token::*;
 
 #[cfg(test)]
 mod testing;

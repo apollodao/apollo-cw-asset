@@ -1,12 +1,11 @@
 use std::vec;
 
-use apollo_protocol::utils::parse_contract_addr_from_instantiate_event;
 use cosmwasm_std::{
-    to_binary, Addr, BalanceResponse, BankMsg, BankQuery, Coin, CosmosMsg, DepsMut, Env,
+    to_binary, Addr, BalanceResponse, BankMsg, BankQuery, Coin, CosmosMsg, Deps, DepsMut, Env,
     MessageInfo, QuerierWrapper, Reply, Response, StdError, StdResult, SubMsg, SubMsgResponse,
     Uint128, WasmMsg, WasmQuery,
 };
-use cw20_base::msg::{ExecuteMsg as Cw20ExecuteMsg, QueryMsg as Cw20QueryMsg};
+use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -28,12 +27,37 @@ pub fn save_cw20_address(
     res: SubMsgResponse,
     item: Item<Token>,
 ) -> StdResult<Response> {
-    let address = parse_contract_addr_from_instantiate_event(deps.as_ref(), res.events)
+    let address = parse_contract_addr_from_instantiate_event(deps.as_ref(), res)
         .map_err(|e| StdError::generic_err(format!("{}", e)))?;
 
-    item.save(deps.storage, &Token::Cw20 { address })?;
+    item.save(
+        deps.storage,
+        &Token::Cw20 {
+            address,
+        },
+    )?;
 
     Ok(Response::default())
+}
+
+fn parse_contract_addr_from_instantiate_event(
+    deps: Deps,
+    response: SubMsgResponse,
+) -> StdResult<Addr> {
+    let event = response
+        .events
+        .iter()
+        .find(|event| event.ty == "instantiate")
+        .ok_or_else(|| StdError::generic_err("cannot find `instantiate` event"))?;
+
+    let contract_addr_str = &event
+        .attributes
+        .iter()
+        .find(|attr| attr.key == "_contract_address")
+        .ok_or_else(|| StdError::generic_err("cannot find `_contract_address` attribute"))?
+        .value;
+
+    deps.api.addr_validate(contract_addr_str)
 }
 
 fn parse_osmosis_denom_from_event(response: SubMsgResponse) -> StdResult<String> {
@@ -60,7 +84,12 @@ pub fn save_osmosis_denom(
 ) -> StdResult<Response> {
     let denom = parse_osmosis_denom_from_event(res)?;
 
-    item.save(deps.storage, &Token::Osmosis { denom })?;
+    item.save(
+        deps.storage,
+        &Token::Osmosis {
+            denom,
+        },
+    )?;
 
     Ok(Response::default())
 }
@@ -72,10 +101,7 @@ pub fn reply_save_token(deps: DepsMut, reply: Reply) -> StdResult<Response> {
     match reply.id {
         REPLY_SAVE_OSMOSIS_DENOM => save_osmosis_denom(deps, res, item),
         REPLY_SAVE_CW20_ADDRESS => save_cw20_address(deps, res, item),
-        id => Err(StdError::generic_err(format!(
-            "invalid reply id: {}; must be 14508-14509",
-            id
-        ))),
+        id => Err(StdError::generic_err(format!("invalid reply id: {}; must be 14508-14509", id))),
     }
 }
 
@@ -111,7 +137,9 @@ impl TokenInstantiator {
         TOKEN_ITEM_KEY.save(deps.storage, &self.item_key)?;
 
         match self.init_info.clone() {
-            TokenInitInfo::Osmosis { subdenom } => Ok(SubMsg::reply_always(
+            TokenInitInfo::Osmosis {
+                subdenom,
+            } => Ok(SubMsg::reply_always(
                 CosmosMsg::Stargate {
                     type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateDenom".to_string(),
                     value: to_binary(&OsmosisCreateDenomMsg {
@@ -143,15 +171,23 @@ impl TokenInstantiator {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Token {
-    Osmosis { denom: String },
-    Cw20 { address: Addr },
+    Osmosis {
+        denom: String,
+    },
+    Cw20 {
+        address: Addr,
+    },
 }
 
 impl ToString for Token {
     fn to_string(&self) -> String {
         match self {
-            Token::Osmosis { denom } => denom.to_owned(),
-            Token::Cw20 { address } => address.to_string(),
+            Token::Osmosis {
+                denom,
+            } => denom.to_owned(),
+            Token::Cw20 {
+                address,
+            } => address.to_string(),
         }
     }
 }
@@ -197,7 +233,9 @@ pub(crate) fn parse_received_fund(funds: &[Coin], denom: &str) -> StdResult<Uint
 impl Token {
     pub fn mint(&self, env: &Env, amount: Uint128, recipient: String) -> StdResult<CosmosMsg> {
         match self {
-            Token::Osmosis { denom } => Ok(CosmosMsg::Stargate {
+            Token::Osmosis {
+                denom,
+            } => Ok(CosmosMsg::Stargate {
                 type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
                 value: to_binary(&OsmosisMintMsg {
                     amount: Coin {
@@ -207,9 +245,14 @@ impl Token {
                     sender: env.contract.address.to_string(),
                 })?,
             }),
-            Token::Cw20 { address } => Ok(WasmMsg::Execute {
+            Token::Cw20 {
+                address,
+            } => Ok(WasmMsg::Execute {
                 contract_addr: address.to_string(),
-                msg: to_binary(&Cw20ExecuteMsg::Mint { amount, recipient })?,
+                msg: to_binary(&Cw20ExecuteMsg::Mint {
+                    amount,
+                    recipient,
+                })?,
                 funds: vec![],
             }
             .into()),
@@ -218,7 +261,9 @@ impl Token {
 
     pub fn burn(&self, env: &Env, amount: Uint128) -> StdResult<CosmosMsg> {
         match self {
-            Token::Osmosis { denom } => Ok(CosmosMsg::Stargate {
+            Token::Osmosis {
+                denom,
+            } => Ok(CosmosMsg::Stargate {
                 type_url: "/osmosis.tokenfactory.v1beta1.Msg/Burn".to_string(),
                 value: to_binary(&OsmosisBurnMsg {
                     amount: Coin {
@@ -228,9 +273,13 @@ impl Token {
                     sender: env.contract.address.to_string(),
                 })?,
             }),
-            Token::Cw20 { address } => Ok(WasmMsg::Execute {
+            Token::Cw20 {
+                address,
+            } => Ok(WasmMsg::Execute {
                 contract_addr: address.to_string(),
-                msg: to_binary(&Cw20ExecuteMsg::Burn { amount })?,
+                msg: to_binary(&Cw20ExecuteMsg::Burn {
+                    amount,
+                })?,
                 funds: vec![],
             }
             .into()),
@@ -239,7 +288,9 @@ impl Token {
 
     pub fn transfer(&self, _env: &Env, amount: Uint128, recipient: String) -> StdResult<CosmosMsg> {
         match self {
-            Token::Osmosis { denom } => Ok(BankMsg::Send {
+            Token::Osmosis {
+                denom,
+            } => Ok(BankMsg::Send {
                 to_address: recipient,
                 amount: vec![Coin {
                     amount,
@@ -247,9 +298,14 @@ impl Token {
                 }],
             }
             .into()),
-            Token::Cw20 { address } => Ok(WasmMsg::Execute {
+            Token::Cw20 {
+                address,
+            } => Ok(WasmMsg::Execute {
                 contract_addr: address.to_string(),
-                msg: to_binary(&Cw20ExecuteMsg::Transfer { amount, recipient })?,
+                msg: to_binary(&Cw20ExecuteMsg::Transfer {
+                    amount,
+                    recipient,
+                })?,
                 funds: vec![],
             }
             .into()),
@@ -277,14 +333,18 @@ impl Token {
         amount: Uint128,
     ) -> StdResult<Option<CosmosMsg>> {
         match self {
-            Token::Osmosis { denom } => {
+            Token::Osmosis {
+                denom,
+            } => {
                 let received_amount = parse_received_fund(&info.funds, denom)?;
                 if received_amount != amount {
                     return Err(StdError::generic_err("amount differs from received amount"));
                 }
                 Ok(None)
             }
-            Token::Cw20 { address } => {
+            Token::Cw20 {
+                address,
+            } => {
                 let transfer_from_msg = WasmMsg::Execute {
                     contract_addr: address.to_string(),
                     msg: to_binary(&Cw20ExecuteMsg::TransferFrom {
@@ -301,7 +361,9 @@ impl Token {
 
     pub fn query_balance(&self, querier: &QuerierWrapper, address: Addr) -> StdResult<Uint128> {
         match self {
-            Token::Osmosis { denom } => {
+            Token::Osmosis {
+                denom,
+            } => {
                 let query = BankQuery::Balance {
                     address: address.to_string(),
                     denom: denom.to_string(),
@@ -309,7 +371,9 @@ impl Token {
                 let res: BalanceResponse = querier.query(&query.into())?;
                 Ok(res.amount.amount)
             }
-            Token::Cw20 { address } => {
+            Token::Cw20 {
+                address,
+            } => {
                 let query = WasmQuery::Smart {
                     contract_addr: address.to_string(),
                     msg: to_binary(&Cw20QueryMsg::Balance {
