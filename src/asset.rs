@@ -7,8 +7,9 @@ use cosmwasm_std::{
 };
 use cw20::Cw20ExecuteMsg;
 
+use cw_storage_plus::Item;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use super::asset_info::{AssetInfo, AssetInfoBase, AssetInfoUnchecked};
 
@@ -98,13 +99,17 @@ impl FromStr for AssetUnchecked {
         }
 
         let info = AssetInfoUnchecked::from_str(&format!("{}:{}", words[0], words[1]))?;
-        let amount = Uint128::from_str(words[2]).map_err(
-            |_| StdError::generic_err(
-                format!("invalid asset amount `{}`; must be a 128-bit unsigned integer", words[2])
-            )
-        )?;
+        let amount = Uint128::from_str(words[2]).map_err(|_| {
+            StdError::generic_err(format!(
+                "invalid asset amount `{}`; must be a 128-bit unsigned integer",
+                words[2]
+            ))
+        })?;
 
-        Ok(AssetUnchecked { info, amount })
+        Ok(AssetUnchecked {
+            info,
+            amount,
+        })
     }
 }
 
@@ -172,9 +177,10 @@ impl TryFrom<Asset> for Coin {
                 denom: denom.clone(),
                 amount: asset.amount,
             }),
-            AssetInfo::Cw20(_) => Err(StdError::generic_err(
-                format!("cannot cast asset {} into cosmwasm_std::Coin", asset)
-            )),
+            AssetInfo::Cw20(_) => Err(StdError::generic_err(format!(
+                "cannot cast asset {} into cosmwasm_std::Coin",
+                asset
+            ))),
         }
     }
 }
@@ -189,10 +195,8 @@ impl TryFrom<&Asset> for Coin {
 impl std::cmp::PartialEq<Asset> for Coin {
     fn eq(&self, other: &Asset) -> bool {
         match &other.info {
-            AssetInfo::Native(denom) => {
-                self.denom == *denom && self.amount == other.amount
-            }
-            AssetInfo::Cw20(_) => false
+            AssetInfo::Native(denom) => self.denom == *denom && self.amount == other.amount,
+            AssetInfo::Cw20(_) => false,
         }
     }
 }
@@ -203,7 +207,9 @@ impl std::cmp::PartialEq<Coin> for Asset {
     }
 }
 
-impl Asset {
+impl AssetTrait for Asset {}
+
+pub trait AssetTrait: Into<Asset> + Clone {
     /// Generate a message that sends a CW20 token to the specified recipient with a binary payload
     ///
     /// NOTE: Only works for CW20 tokens. Returns error if invoked on an [`Asset`] instance
@@ -228,13 +234,14 @@ impl Asset {
     ///         .add_attribute("asset_sent", asset.to_string()))
     /// }
     /// ```
-    pub fn send_msg<A: Into<String>>(&self, to: A, msg: Binary) -> StdResult<CosmosMsg> {
-        match &self.info {
+    fn send_msg<A: Into<String>>(&self, to: A, msg: Binary) -> StdResult<CosmosMsg> {
+        let asset: Asset = self.to_owned().into();
+        match asset.info {
             AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: contract_addr.into(),
                 msg: to_binary(&Cw20ExecuteMsg::Send {
                     contract: to.into(),
-                    amount: self.amount,
+                    amount: asset.amount,
                     msg,
                 })?,
                 funds: vec![],
@@ -259,13 +266,14 @@ impl Asset {
     ///         .add_attribute("asset_sent", asset.to_string()))
     /// }
     /// ```
-    pub fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg> {
-        match &self.info {
+    fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg> {
+        let asset: Asset = self.to_owned().into();
+        match asset.info {
             AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: contract_addr.into(),
                 msg: to_binary(&Cw20ExecuteMsg::Transfer {
                     recipient: to.into(),
-                    amount: self.amount,
+                    amount: asset.amount,
                 })?,
                 funds: vec![],
             })),
@@ -273,7 +281,7 @@ impl Asset {
                 to_address: to.into(),
                 amount: vec![Coin {
                     denom: denom.clone(),
-                    amount: self.amount,
+                    amount: asset.amount,
                 }],
             })),
         }
@@ -297,23 +305,61 @@ impl Asset {
     ///         .add_attribute("asset_drawn", asset.to_string()))
     /// }
     /// ```
-    pub fn transfer_from_msg<A: Into<String>, B: Into<String>>(
+    fn transfer_from_msg<A: Into<String>, B: Into<String>>(
         &self,
         from: A,
         to: B,
     ) -> StdResult<CosmosMsg> {
-        match &self.info {
+        let asset: Asset = self.to_owned().into();
+        match asset.info {
             AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: contract_addr.into(),
                 msg: to_binary(&Cw20ExecuteMsg::TransferFrom {
                     owner: from.into(),
                     recipient: to.into(),
-                    amount: self.amount,
+                    amount: asset.amount,
                 })?,
                 funds: vec![],
             })),
             AssetInfo::Native(_) => {
                 Err(StdError::generic_err("native coins do not have `transfer_from` method"))
+            }
+        }
+    }
+
+    fn mint_msg<A: Into<String>, B: Into<String>>(
+        &self,
+        sender: A,
+        recipient: B,
+    ) -> StdResult<CosmosMsg> {
+        let asset: Asset = self.to_owned().into();
+        match asset.info {
+            AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: contract_addr.into(),
+                msg: to_binary(&Cw20ExecuteMsg::Mint {
+                    recipient: recipient.into(),
+                    amount: asset.amount,
+                })?,
+                funds: vec![],
+            })),
+            AssetInfo::Native(_) => {
+                Err(StdError::generic_err("native coins do not have `mint` method"))
+            }
+        }
+    }
+
+    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
+        let asset: Asset = self.to_owned().into();
+        match asset.info {
+            AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: contract_addr.into(),
+                msg: to_binary(&Cw20ExecuteMsg::Burn {
+                    amount: asset.amount,
+                })?,
+                funds: vec![],
+            })),
+            AssetInfo::Native(_) => {
+                Err(StdError::generic_err("native coins do not have `burn` method"))
             }
         }
     }
@@ -370,7 +416,7 @@ mod tests {
         let uusd = Asset::native("uusd", 69u128);
         let uusd_coin = Coin {
             denom: String::from("uusd"),
-            amount: Uint128::new(69)
+            amount: Uint128::new(69),
         };
         assert_eq!(Coin::try_from(&uusd).unwrap(), uusd_coin);
         assert_eq!(Coin::try_from(uusd).unwrap(), uusd_coin);
@@ -378,11 +424,15 @@ mod tests {
         let astro = Asset::cw20(Addr::unchecked("astro_token"), 69u128);
         assert_eq!(
             Coin::try_from(&astro),
-            Err(StdError::generic_err("cannot cast asset cw20:astro_token:69 into cosmwasm_std::Coin"))
+            Err(StdError::generic_err(
+                "cannot cast asset cw20:astro_token:69 into cosmwasm_std::Coin"
+            ))
         );
         assert_eq!(
             Coin::try_from(astro),
-            Err(StdError::generic_err("cannot cast asset cw20:astro_token:69 into cosmwasm_std::Coin"))
+            Err(StdError::generic_err(
+                "cannot cast asset cw20:astro_token:69 into cosmwasm_std::Coin"
+            ))
         );
     }
 
@@ -405,7 +455,7 @@ mod tests {
         let uusd_2 = Asset::native("uusd", 420u128);
         let uusd_coin = Coin {
             denom: String::from("uusd"),
-            amount: Uint128::new(69)
+            amount: Uint128::new(69),
         };
         let astro = Asset::cw20(Addr::unchecked("astro_token"), 69u128);
 
@@ -436,14 +486,13 @@ mod tests {
         let s = "native:uusd:ngmi";
         assert_eq!(
             AssetUnchecked::from_str(s),
-            Err(StdError::generic_err("invalid asset amount `ngmi`; must be a 128-bit unsigned integer")),
+            Err(StdError::generic_err(
+                "invalid asset amount `ngmi`; must be a 128-bit unsigned integer"
+            )),
         );
 
         let s = "native:uusd:12345";
-        assert_eq!(
-            AssetUnchecked::from_str(s).unwrap(),
-            AssetUnchecked::native("uusd", 12345u128),
-        );
+        assert_eq!(AssetUnchecked::from_str(s).unwrap(), AssetUnchecked::native("uusd", 12345u128),);
 
         let s = "cw20:mock_token:12345";
         assert_eq!(

@@ -1,4 +1,4 @@
-use std::vec;
+use std::{convert::TryInto, vec};
 
 use cosmwasm_std::{
     to_binary, Addr, BalanceResponse, BankMsg, BankQuery, Coin, CosmosMsg, Deps, DepsMut, Env,
@@ -8,10 +8,12 @@ use cosmwasm_std::{
 use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use cw20::BalanceResponse as Cw20BalanceResponse;
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
+
+use crate::{AssetInfo, Asset, AssetTrait};
 
 const REPLY_SAVE_OSMOSIS_DENOM: u64 = 14508;
 const REPLY_SAVE_CW20_ADDRESS: u64 = 14509;
@@ -22,10 +24,10 @@ pub(crate) fn unwrap_reply(reply: Reply) -> StdResult<SubMsgResponse> {
     reply.result.into_result().map_err(StdError::generic_err)
 }
 
-pub fn save_cw20_address(
+pub fn save_cw20_address<A: AssetTrait>(
     deps: DepsMut,
     res: SubMsgResponse,
-    item: Item<Token>,
+    item: Item<A>,
 ) -> StdResult<Response> {
     let address = parse_contract_addr_from_instantiate_event(deps.as_ref(), res)
         .map_err(|e| StdError::generic_err(format!("{}", e)))?;
@@ -126,11 +128,7 @@ pub struct TokenInstantiator {
 
 const TOKEN_ITEM_KEY: Item<String> = Item::new("token_item_key");
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct OsmosisCreateDenomMsg {
-    sender: String,
-    subdenom: String,
-}
+
 
 impl TokenInstantiator {
     pub fn instantiate(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg> {
@@ -169,28 +167,50 @@ impl TokenInstantiator {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum Token {
-    Osmosis {
-        denom: String,
-    },
-    Cw20 {
-        address: Addr,
-    },
+pub struct OsmosisCreateDenomMsg {
+    sender: String,
+    subdenom: String,
 }
 
-impl ToString for Token {
-    fn to_string(&self) -> String {
-        match self {
-            Token::Osmosis {
-                denom,
-            } => denom.to_owned(),
-            Token::Cw20 {
-                address,
-            } => address.to_string(),
-        }
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Chain {
+    #[cfg(feature = "osmosis")]
+    Osmosis,
+}
+
+pub type OsmosisDenom = Coin;
+
+impl AssetTrait for OsmosisDenom {
+    fn mint_msg<A: Into<String>, B: Into<String>>(&self, sender: A, recipient: B) -> StdResult<CosmosMsg>{
+        Ok(CosmosMsg::Stargate {
+            type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
+            value: to_binary(&OsmosisMintMsg {
+                amount: Coin {
+                    denom: self.denom,
+                    amount: self.amount,
+                },
+                sender: sender.into(),
+            })?,
+        })
+    }
+
+    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg>{
+        Ok(CosmosMsg::Stargate {
+            type_url: "/osmosis.tokenfactory.v1beta1.Msg/Burn".to_string(),
+            value: to_binary(&OsmosisBurnMsg {
+                amount: Coin {
+                    denom: self.denom,
+                    amount: self.amount,
+                },
+                sender: sender.into(),
+            })?,
+        })
+        
     }
 }
+
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 struct OsmosisMintMsg {
@@ -383,6 +403,16 @@ impl Token {
                 let res: Cw20BalanceResponse = querier.query(&query.into())?;
                 Ok(res.balance)
             }
+        }
+    }
+}
+
+
+impl From<AssetInfo> for Token {
+    fn from(info: AssetInfo) -> Self {
+        match info {
+            AssetInfo:Cw20(_) => todo!(),
+            AssetInfo::Native(_) => todo!(),
         }
     }
 }
