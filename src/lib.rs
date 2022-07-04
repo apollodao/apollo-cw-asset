@@ -84,12 +84,14 @@
 //! ```
 mod asset;
 mod asset_info;
+mod asset_instantiator;
 mod asset_list;
 mod key;
 mod token;
 
 pub use asset::*;
 pub use asset_info::*;
+pub use asset_instantiator::*;
 pub use asset_list::*;
 pub use key::*;
 pub use token::*;
