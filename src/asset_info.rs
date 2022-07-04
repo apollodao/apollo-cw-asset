@@ -10,6 +10,8 @@ use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::Asset;
+
 /// Represents the type of an fungible asset
 ///
 /// Each **asset info** instance can be one of two variants:
@@ -172,6 +174,13 @@ impl AssetInfo {
                     }))?;
                 Ok(response.amount.amount)
             }
+        }
+    }
+
+    pub fn to_asset(&self, amount: Uint128) -> Asset {
+        Asset {
+            amount,
+            info: self.clone(),
         }
     }
 }
