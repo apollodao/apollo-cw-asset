@@ -13,15 +13,15 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct OsmosisDenom(Coin);
+pub struct OsmosisCoin(Coin);
 
-impl From<OsmosisDenom> for Asset {
-    fn from(asset: OsmosisDenom) -> Asset {
+impl From<OsmosisCoin> for Asset {
+    fn from(asset: OsmosisCoin) -> Asset {
         Asset::from(asset.0)
     }
 }
 
-impl TryFrom<Asset> for OsmosisDenom {
+impl TryFrom<Asset> for OsmosisCoin {
     type Error = StdError;
 
     fn try_from(asset: Asset) -> StdResult<Self> {
@@ -34,15 +34,15 @@ impl TryFrom<Asset> for OsmosisDenom {
                 if parts.len() != 3 || parts[0] != "factory" {
                     return Err(StdError::generic_err("Invalid denom for OsmosisDenom."));
                 }
-                Ok(OsmosisDenom(Coin::new(asset.amount.into(), denom)))
+                Ok(OsmosisCoin(Coin::new(asset.amount.into(), denom)))
             }
         }
     }
 }
 
-impl Transferable for OsmosisDenom {}
+impl Transferable for OsmosisCoin {}
 
-impl Mint for OsmosisDenom {
+impl Mint for OsmosisCoin {
     fn mint_msg<A: Into<String>, B: Into<String>>(
         &self,
         sender: A,
@@ -61,7 +61,7 @@ impl Mint for OsmosisDenom {
     }
 }
 
-impl Burn for OsmosisDenom {
+impl Burn for OsmosisCoin {
     fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Stargate {
             type_url: "/osmosis.tokenfactory.v1beta1.MsgBurn".to_string(),
@@ -100,7 +100,7 @@ pub struct OsmosisDenomInitMsg {
     pub subdenom: String,
 }
 
-impl Instantiate<OsmosisDenomInitMsg> for OsmosisDenom {
+impl Instantiate<OsmosisDenomInitMsg> for OsmosisCoin {
     fn instantiate<A: Into<OsmosisDenomInitMsg>>(
         &self,
         deps: DepsMut,
