@@ -1,8 +1,7 @@
 use std::vec;
 
 use cosmwasm_std::{
-    Addr, Coin, Deps, DepsMut, Env, Reply, Response, StdError, StdResult, SubMsg, SubMsgResponse,
-    Uint128,
+    Addr, Deps, DepsMut, Env, Reply, Response, StdError, StdResult, SubMsg, SubMsgResponse,
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
@@ -71,40 +70,8 @@ pub enum TokenInitInfo {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct AAssetInstantiator {
-    pub item_key: String,
-    pub init_info: TokenInitInfo,
-}
-
 pub const TOKEN_ITEM_KEY: Item<String> = Item::new("token_item_key");
 
-pub trait AssetInstantiator<A> {
+pub trait Instantiate<A> {
     fn instantiate<B: Into<A>>(&self, deps: DepsMut, env: Env, msg: B) -> StdResult<SubMsg>;
-}
-
-/// Find the amount of a denom sent along a message, assert it is non-zero, and no other denom were
-/// sent together
-/// TODO: Took from steakcontracts. Move out to protocol utils and use here and in main steak contracts
-pub(crate) fn parse_received_fund(funds: &[Coin], denom: &str) -> StdResult<Uint128> {
-    if funds.len() != 1 {
-        return Err(StdError::generic_err(format!(
-            "must deposit exactly one coin; received {}",
-            funds.len()
-        )));
-    }
-
-    let fund = &funds[0];
-    if fund.denom != denom {
-        return Err(StdError::generic_err(format!(
-            "expected {} deposit, received {}",
-            denom, fund.denom
-        )));
-    }
-
-    if fund.amount.is_zero() {
-        return Err(StdError::generic_err("deposit amount must be non-zero"));
-    }
-
-    Ok(fund.amount)
 }

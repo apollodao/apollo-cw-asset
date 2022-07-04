@@ -1,24 +1,22 @@
+use std::convert::TryFrom;
+
 use cosmwasm_std::{
     to_binary, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, SubMsg,
-    SubMsgResponse,
+    SubMsgResponse, Uint128,
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{unwrap_reply, AssetInstantiator, AssetTrait, TOKEN_ITEM_KEY};
+use crate::{unwrap_reply, AssetTrait, Instantiate, Mint, TOKEN_ITEM_KEY};
 
 pub type OsmosisDenom = Coin;
 
 impl AssetTrait for OsmosisDenom {
-    fn mint_msg<A: Into<String>, B: Into<String>>(
-        &self,
-        sender: A,
-        recipient: B,
-    ) -> StdResult<CosmosMsg> {
+    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Stargate {
-            type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
-            value: to_binary(&OsmosisMintMsg {
+            type_url: "/osmosis.tokenfactory.v1beta1.Msg/Burn".to_string(),
+            value: to_binary(&OsmosisBurnMsg {
                 amount: Coin {
                     denom: self.denom.clone(),
                     amount: self.amount,
@@ -27,11 +25,17 @@ impl AssetTrait for OsmosisDenom {
             })?,
         })
     }
+}
 
-    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
+impl Mint for OsmosisDenom {
+    fn mint_msg<A: Into<String>, B: Into<String>>(
+        &self,
+        sender: A,
+        _recipient: B,
+    ) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Stargate {
-            type_url: "/osmosis.tokenfactory.v1beta1.Msg/Burn".to_string(),
-            value: to_binary(&OsmosisBurnMsg {
+            type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
+            value: to_binary(&OsmosisMintMsg {
                 amount: Coin {
                     denom: self.denom.clone(),
                     amount: self.amount,
@@ -66,7 +70,7 @@ pub struct OsmosisDenomInitMsg {
     pub subdenom: String,
 }
 
-impl AssetInstantiator<OsmosisDenomInitMsg> for OsmosisDenom {
+impl Instantiate<OsmosisDenomInitMsg> for OsmosisDenom {
     fn instantiate<A: Into<OsmosisDenomInitMsg>>(
         &self,
         deps: DepsMut,
@@ -129,3 +133,12 @@ fn parse_osmosis_denom_from_instantiate_event(response: SubMsgResponse) -> StdRe
 
     Ok(denom.to_string())
 }
+
+// TODO:
+// * Implement TryFrom<Asset> for OsmosisDenom
+//     * Verify valid denom
+// * Implement From<OsmosisDenom> for Asset
+// * Break out minting and burning into separate trait and implement cw20token
+// * Verify owner function on OsmosisDenom
+// * More useful functions?
+// * Implement queries as trait
