@@ -6,6 +6,8 @@ use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, StdError, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::AssetTrait;
+
 use super::asset::{Asset, AssetBase, AssetUnchecked};
 use super::asset_info::AssetInfo;
 
