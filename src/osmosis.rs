@@ -8,9 +8,37 @@ use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{unwrap_reply, Burn, Instantiate, Mint, Transferable, TOKEN_ITEM_KEY};
+use crate::{
+    unwrap_reply, Asset, AssetInfo, Burn, Instantiate, Mint, Transferable, TOKEN_ITEM_KEY,
+};
 
-pub type OsmosisDenom = Coin;
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct OsmosisDenom(Coin);
+
+impl From<OsmosisDenom> for Asset {
+    fn from(asset: OsmosisDenom) -> Asset {
+        Asset::from(asset.0)
+    }
+}
+
+impl TryFrom<Asset> for OsmosisDenom {
+    type Error = StdError;
+
+    fn try_from(asset: Asset) -> StdResult<Self> {
+        match asset.info {
+            AssetInfo::Cw20(_) => {
+                Err(StdError::generic_err("Cannot convert Cw20 asset to OsmosisDenom."))
+            }
+            AssetInfo::Native(denom) => {
+                let parts: Vec<&str> = denom.split('/').collect();
+                if parts.len() != 3 || parts[0] != "factory" {
+                    return Err(StdError::generic_err("Invalid denom for OsmosisDenom."));
+                }
+                Ok(OsmosisDenom(Coin::new(asset.amount.into(), denom)))
+            }
+        }
+    }
+}
 
 impl Transferable for OsmosisDenom {}
 
@@ -24,8 +52,8 @@ impl Mint for OsmosisDenom {
             type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
             value: to_binary(&OsmosisMintMsg {
                 amount: Coin {
-                    denom: self.denom.clone(),
-                    amount: self.amount,
+                    denom: self.0.denom.clone(),
+                    amount: self.0.amount,
                 },
                 sender: sender.into(),
             })?,
@@ -39,8 +67,8 @@ impl Burn for OsmosisDenom {
             type_url: "/osmosis.tokenfactory.v1beta1.MsgBurn".to_string(),
             value: to_binary(&OsmosisBurnMsg {
                 amount: Coin {
-                    denom: self.denom.clone(),
-                    amount: self.amount,
+                    denom: self.0.denom.clone(),
+                    amount: self.0.amount,
                 },
                 sender: sender.into(),
             })?,
