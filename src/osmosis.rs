@@ -8,11 +8,11 @@ use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{unwrap_reply, AssetTrait, Burn, Instantiate, Mint, TOKEN_ITEM_KEY};
+use crate::{unwrap_reply, Burn, Instantiate, Mint, Transferable, TOKEN_ITEM_KEY};
 
 pub type OsmosisDenom = Coin;
 
-impl AssetTrait for OsmosisDenom {}
+impl Transferable for OsmosisDenom {}
 
 impl Mint for OsmosisDenom {
     fn mint_msg<A: Into<String>, B: Into<String>>(
@@ -99,7 +99,7 @@ impl Instantiate<OsmosisDenomInitMsg> for OsmosisDenom {
 const REPLY_SAVE_OSMOSIS_DENOM: u64 = 14508;
 
 /// Save a osmosis denom from an instantiation event to the storage as a struct of type `A`.
-pub fn save_osmosis_denom<A: AssetTrait + From<String>>(
+pub fn save_osmosis_denom<A: Transferable + From<String>>(
     deps: DepsMut,
     reply: Reply,
     item: Item<A>,

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
-use crate::AssetTrait;
+use crate::Transferable;
 
 const REPLY_SAVE_CW20_ADDRESS: u64 = 14509;
 
@@ -20,7 +20,7 @@ pub(crate) fn unwrap_reply(reply: Reply) -> StdResult<SubMsgResponse> {
 }
 
 /// Save a cw20 address from an instantiation event to the storage as a struct of type `A`.
-pub fn save_cw20_address<A: AssetTrait + From<Addr>>(
+pub fn save_cw20_address<A: Transferable + From<Addr>>(
     deps: DepsMut,
     reply: Reply,
     item: Item<A>,
