@@ -151,14 +151,14 @@ fn parse_osmosis_denom_from_instantiate_event(response: SubMsgResponse) -> StdRe
     let event = response
         .events
         .iter()
-        .find(|event| event.ty == "instantiate")
-        .ok_or_else(|| StdError::generic_err("cannot find `instantiate` event"))?;
+        .find(|event| event.ty == "create_denom")
+        .ok_or_else(|| StdError::generic_err("cannot find `create_denom` event"))?;
 
     let denom = &event
         .attributes
         .iter()
         .find(|attr| attr.key == "new_token_denom")
-        .ok_or_else(|| StdError::generic_err("cannot find `_contract_address` attribute"))?
+        .ok_or_else(|| StdError::generic_err("cannot find `new_token_denom` attribute"))?
         .value;
 
     Ok(denom.to_string())
