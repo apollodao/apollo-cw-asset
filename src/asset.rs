@@ -209,7 +209,7 @@ impl std::cmp::PartialEq<Coin> for Asset {
 
 impl AssetTrait for Asset {}
 
-pub trait AssetTrait: Into<Asset> + Clone {
+pub trait AssetTrait: Into<Asset> + Clone + Serialize + DeserializeOwned {
     /// Generate a message that sends a CW20 token to the specified recipient with a binary payload
     ///
     /// NOTE: Only works for CW20 tokens. Returns error if invoked on an [`Asset`] instance
