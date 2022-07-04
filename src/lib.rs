@@ -86,7 +86,7 @@ mod asset;
 mod asset_info;
 mod asset_instantiator;
 mod asset_list;
-pub mod cw20;
+pub mod cw20_asset;
 mod key;
 pub mod osmosis;
 

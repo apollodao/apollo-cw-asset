@@ -326,22 +326,6 @@ pub trait AssetTrait: Into<Asset> + Clone + Serialize + DeserializeOwned {
             }
         }
     }
-
-    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
-        let asset: Asset = self.to_owned().into();
-        match asset.info {
-            AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: contract_addr.into(),
-                msg: to_binary(&Cw20ExecuteMsg::Burn {
-                    amount: asset.amount,
-                })?,
-                funds: vec![],
-            })),
-            AssetInfo::Native(_) => {
-                Err(StdError::generic_err("native coins do not have `burn` method"))
-            }
-        }
-    }
 }
 
 pub trait Mint {
@@ -352,6 +336,14 @@ pub trait Mint {
     ) -> StdResult<CosmosMsg>;
 
     fn is_mintable() -> bool {
+        true
+    }
+}
+
+pub trait Burn {
+    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg>;
+
+    fn is_burnable() -> bool {
         true
     }
 }

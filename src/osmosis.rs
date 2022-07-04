@@ -8,24 +8,11 @@ use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{unwrap_reply, AssetTrait, Instantiate, Mint, TOKEN_ITEM_KEY};
+use crate::{unwrap_reply, AssetTrait, Burn, Instantiate, Mint, TOKEN_ITEM_KEY};
 
 pub type OsmosisDenom = Coin;
 
-impl AssetTrait for OsmosisDenom {
-    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
-        Ok(CosmosMsg::Stargate {
-            type_url: "/osmosis.tokenfactory.v1beta1.Msg/Burn".to_string(),
-            value: to_binary(&OsmosisBurnMsg {
-                amount: Coin {
-                    denom: self.denom.clone(),
-                    amount: self.amount,
-                },
-                sender: sender.into(),
-            })?,
-        })
-    }
-}
+impl AssetTrait for OsmosisDenom {}
 
 impl Mint for OsmosisDenom {
     fn mint_msg<A: Into<String>, B: Into<String>>(
@@ -36,6 +23,21 @@ impl Mint for OsmosisDenom {
         Ok(CosmosMsg::Stargate {
             type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
             value: to_binary(&OsmosisMintMsg {
+                amount: Coin {
+                    denom: self.denom.clone(),
+                    amount: self.amount,
+                },
+                sender: sender.into(),
+            })?,
+        })
+    }
+}
+
+impl Burn for OsmosisDenom {
+    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
+        Ok(CosmosMsg::Stargate {
+            type_url: "/osmosis.tokenfactory.v1beta1.MsgBurn".to_string(),
+            value: to_binary(&OsmosisBurnMsg {
                 amount: Coin {
                     denom: self.denom.clone(),
                     amount: self.amount,
