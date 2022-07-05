@@ -101,7 +101,7 @@ pub struct OsmosisDenomInitMsg {
 }
 
 impl Instantiate<OsmosisDenomInitMsg> for OsmosisCoin {
-    fn instantiate<A: Into<OsmosisDenomInitMsg>>(
+    fn instantiate_msg<A: Into<OsmosisDenomInitMsg>>(
         &self,
         deps: DepsMut,
         env: Env,
