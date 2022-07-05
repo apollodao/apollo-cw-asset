@@ -1,13 +1,25 @@
-use std::{convert::TryFrom, error::Error};
+use std::convert::TryFrom;
 
 use cosmwasm_std::{to_binary, Addr, CosmosMsg, StdError, StdResult, Uint128, WasmMsg};
 use cw20::Cw20ExecuteMsg;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-use crate::{Asset, AssetInfo, Burn, Mint};
+use crate::{Asset, AssetInfo, Burn, Mint, Transferable};
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Cw20Asset {
     pub address: Addr,
     pub amount: Uint128,
+}
+
+impl From<Cw20Asset> for Asset {
+    fn from(cw20_asset: Cw20Asset) -> Self {
+        Asset {
+            amount: cw20_asset.amount,
+            info: AssetInfo::Cw20(cw20_asset.address),
+        }
+    }
 }
 
 impl TryFrom<Asset> for Cw20Asset {
@@ -25,6 +37,8 @@ impl TryFrom<Asset> for Cw20Asset {
         }
     }
 }
+
+impl Transferable for Cw20Asset {}
 
 impl Mint for Cw20Asset {
     fn mint_msg<A: Into<String>, B: Into<String>>(
