@@ -5,11 +5,9 @@ use cosmwasm_std::{
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
-
-use crate::Transferable;
 
 /// Unwrap a `Reply` object to extract the response
 /// TODO: Copied from larrys steakhouse. Move to protocol
@@ -32,6 +30,8 @@ pub enum TokenInitInfo {
 
 pub const TOKEN_ITEM_KEY: Item<String> = Item::new("token_item_key");
 
-pub trait Instantiate<A> {
-    fn instantiate_msg<B: Into<A>>(&self, deps: DepsMut, env: Env, msg: B) -> StdResult<SubMsg>;
+pub trait Instantiate<A: Serialize + DeserializeOwned>: Sized {
+    fn instantiate_msg(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg>;
+
+    fn save_asset(deps: DepsMut, reply: Reply, item: Item<A>) -> StdResult<Response>;
 }

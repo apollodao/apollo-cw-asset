@@ -6,7 +6,7 @@ use cosmwasm_std::{
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
     unwrap_reply, Asset, AssetInfo, Burn, Instantiate, Mint, Transferable, TOKEN_ITEM_KEY,
@@ -95,32 +95,36 @@ pub struct OsmosisCreateDenomMsg {
     subdenom: String,
 }
 
-pub struct OsmosisDenomInitMsg {
-    pub item_key: String,
-    pub subdenom: String,
-}
+pub type OsmosisDenomInstantiator = String;
 
-impl Instantiate<OsmosisDenomInitMsg> for OsmosisCoin {
-    fn instantiate_msg<A: Into<OsmosisDenomInitMsg>>(
-        &self,
-        deps: DepsMut,
-        env: Env,
-        msg: A,
-    ) -> StdResult<SubMsg> {
-        let osmosis_denom_init_msg = msg.into();
-
-        TOKEN_ITEM_KEY.save(deps.storage, &osmosis_denom_init_msg.item_key)?;
-
+impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
+    fn instantiate_msg(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg> {
         Ok(SubMsg::reply_always(
             CosmosMsg::Stargate {
                 type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateDenom".to_string(),
                 value: to_binary(&OsmosisCreateDenomMsg {
                     sender: env.contract.address.to_string(),
-                    subdenom: osmosis_denom_init_msg.subdenom,
+                    subdenom: self.clone(),
                 })?,
             },
             REPLY_SAVE_OSMOSIS_DENOM,
         ))
+    }
+
+    fn save_asset(deps: DepsMut, reply: Reply, item: Item<AssetInfo>) -> StdResult<Response> {
+        if reply.id == REPLY_SAVE_OSMOSIS_DENOM {
+            let res = unwrap_reply(reply)?;
+            let osmosis_denom = parse_osmosis_denom_from_instantiate_event(res)
+                .map_err(|e| StdError::generic_err(format!("{}", e)))?;
+
+            item.save(deps.storage, &AssetInfo::Native(osmosis_denom.clone()))?;
+
+            Ok(Response::new()
+                .add_attribute("action", "save_osmosis_denom")
+                .add_attribute("denom", &osmosis_denom))
+        } else {
+            Ok(Response::new())
+        }
     }
 }
 

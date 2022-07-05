@@ -89,6 +89,12 @@ impl From<AssetInfo> for AssetInfoUnchecked {
     }
 }
 
+impl From<Addr> for AssetInfo {
+    fn from(addr: Addr) -> Self {
+        AssetInfo::Cw20(addr)
+    }
+}
+
 impl AssetInfoUnchecked {
     /// Validate data contained in an _unchecked_ **asset info** instance; return a new _checked_
     /// **asset info** instance:

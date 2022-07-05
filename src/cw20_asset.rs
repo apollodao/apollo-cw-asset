@@ -7,7 +7,7 @@ use cosmwasm_std::{
 use cw20::Cw20ExecuteMsg;
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
@@ -48,24 +48,6 @@ impl TryFrom<Asset> for Cw20Asset {
 
 const REPLY_SAVE_CW20_ADDRESS: u64 = 14509;
 
-/// Save a cw20 address from an instantiation event to the storage as a struct of type `A`.
-pub fn save_cw20_address<A: Transferable + From<Addr>>(
-    deps: DepsMut,
-    reply: Reply,
-    item: Item<A>,
-) -> StdResult<Response> {
-    if reply.id == REPLY_SAVE_CW20_ADDRESS {
-        let res = unwrap_reply(reply)?;
-        let addr = parse_contract_addr_from_instantiate_event(deps.as_ref(), res)?;
-        item.save(deps.storage, &addr.clone().into())?;
-        Ok(Response::new()
-            .add_attribute("action", "save_osmosis_denom")
-            .add_attribute("addr", &addr))
-    } else {
-        Ok(Response::new())
-    }
-}
-
 fn parse_contract_addr_from_instantiate_event(
     deps: Deps,
     response: SubMsgResponse,
@@ -84,34 +66,6 @@ fn parse_contract_addr_from_instantiate_event(
         .value;
 
     deps.api.addr_validate(contract_addr_str)
-}
-
-pub struct Cw20AssetInitMsg {
-    pub label: String,
-    pub admin: Option<String>,
-    pub code_id: u64,
-    pub cw20_init_msg: Cw20InstantiateMsg,
-}
-
-impl Instantiate<Cw20AssetInitMsg> for Cw20Asset {
-    fn instantiate_msg<B: Into<Cw20AssetInitMsg>>(
-        &self,
-        _deps: DepsMut,
-        _env: Env,
-        msg: B,
-    ) -> StdResult<SubMsg> {
-        let msg: Cw20AssetInitMsg = msg.into();
-        Ok(SubMsg::reply_always(
-            WasmMsg::Instantiate {
-                admin: msg.admin,
-                code_id: msg.code_id,
-                msg: to_binary(&msg.cw20_init_msg)?,
-                funds: vec![],
-                label: msg.label,
-            },
-            REPLY_SAVE_CW20_ADDRESS,
-        ))
-    }
 }
 
 impl Transferable for Cw20Asset {}
@@ -142,5 +96,41 @@ impl Burn for Cw20Asset {
             })?,
             funds: vec![],
         }))
+    }
+}
+
+pub struct Cw20AssetInstantiator {
+    pub label: String,
+    pub admin: Option<String>,
+    pub code_id: u64,
+    pub cw20_init_msg: Cw20InstantiateMsg,
+}
+
+impl Instantiate<AssetInfo> for Cw20AssetInstantiator {
+    fn instantiate_msg(&self, _deps: DepsMut, _env: Env) -> StdResult<SubMsg> {
+        Ok(SubMsg::reply_always(
+            WasmMsg::Instantiate {
+                admin: self.admin.clone(),
+                code_id: self.code_id,
+                msg: to_binary(&self.cw20_init_msg)?,
+                funds: vec![],
+                label: self.label.clone(),
+            },
+            REPLY_SAVE_CW20_ADDRESS,
+        ))
+    }
+
+    fn save_asset(deps: DepsMut, reply: Reply, item: Item<AssetInfo>) -> StdResult<Response> {
+        if reply.id == REPLY_SAVE_CW20_ADDRESS {
+            let res = unwrap_reply(reply)?;
+            let asset = parse_contract_addr_from_instantiate_event(deps.as_ref(), res)?;
+
+            item.save(deps.storage, &asset.clone().into())?;
+            Ok(Response::new()
+                .add_attribute("action", "save_osmosis_denom")
+                .add_attribute("addr", &asset))
+        } else {
+            Ok(Response::new())
+        }
     }
 }
