@@ -1,8 +1,8 @@
 use std::convert::TryFrom;
 
 use cosmwasm_std::{
-    to_binary, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, SubMsg,
-    SubMsgResponse, Uint128,
+    to_binary, Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage,
+    SubMsg, SubMsgResponse, Uint128,
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
@@ -111,13 +111,18 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
         ))
     }
 
-    fn save_asset(deps: DepsMut, reply: Reply, item: Item<AssetInfo>) -> StdResult<Response> {
+    fn save_asset(
+        storage: &mut dyn Storage,
+        api: &dyn Api,
+        reply: Reply,
+        item: Item<AssetInfo>,
+    ) -> StdResult<Response> {
         if reply.id == REPLY_SAVE_OSMOSIS_DENOM {
             let res = unwrap_reply(reply)?;
             let osmosis_denom = parse_osmosis_denom_from_instantiate_event(res)
                 .map_err(|e| StdError::generic_err(format!("{}", e)))?;
 
-            item.save(deps.storage, &AssetInfo::Native(osmosis_denom.clone()))?;
+            item.save(storage, &AssetInfo::Native(osmosis_denom.clone()))?;
 
             Ok(Response::new()
                 .add_attribute("action", "save_osmosis_denom")

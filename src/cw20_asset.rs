@@ -1,8 +1,8 @@
 use std::convert::TryFrom;
 
 use cosmwasm_std::{
-    to_binary, Addr, CosmosMsg, Deps, DepsMut, Env, Reply, Response, StdError, StdResult, SubMsg,
-    SubMsgResponse, Uint128, WasmMsg,
+    to_binary, Addr, Api, CosmosMsg, Deps, DepsMut, Env, Reply, Response, StdError, StdResult,
+    Storage, SubMsg, SubMsgResponse, Uint128, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
 use cw_storage_plus::Item;
@@ -49,7 +49,7 @@ impl TryFrom<Asset> for Cw20Asset {
 const REPLY_SAVE_CW20_ADDRESS: u64 = 14509;
 
 fn parse_contract_addr_from_instantiate_event(
-    deps: Deps,
+    api: &dyn Api,
     response: SubMsgResponse,
 ) -> StdResult<Addr> {
     let event = response
@@ -65,7 +65,7 @@ fn parse_contract_addr_from_instantiate_event(
         .ok_or_else(|| StdError::generic_err("cannot find `_contract_address` attribute"))?
         .value;
 
-    deps.api.addr_validate(contract_addr_str)
+    api.addr_validate(contract_addr_str)
 }
 
 impl Transferable for Cw20Asset {}
@@ -120,12 +120,17 @@ impl Instantiate<AssetInfo> for Cw20AssetInstantiator {
         ))
     }
 
-    fn save_asset(deps: DepsMut, reply: Reply, item: Item<AssetInfo>) -> StdResult<Response> {
+    fn save_asset(
+        storage: &mut dyn Storage,
+        api: &dyn Api,
+        reply: Reply,
+        item: Item<AssetInfo>,
+    ) -> StdResult<Response> {
         if reply.id == REPLY_SAVE_CW20_ADDRESS {
             let res = unwrap_reply(reply)?;
-            let asset = parse_contract_addr_from_instantiate_event(deps.as_ref(), res)?;
+            let asset = parse_contract_addr_from_instantiate_event(api, res)?;
 
-            item.save(deps.storage, &asset.clone().into())?;
+            item.save(storage, &asset.clone().into())?;
             Ok(Response::new()
                 .add_attribute("action", "save_osmosis_denom")
                 .add_attribute("addr", &asset))

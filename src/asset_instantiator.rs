@@ -1,7 +1,8 @@
 use std::vec;
 
 use cosmwasm_std::{
-    Addr, Deps, DepsMut, Env, Reply, Response, StdError, StdResult, SubMsg, SubMsgResponse,
+    Addr, Api, Deps, DepsMut, Env, Reply, Response, StdError, StdResult, Storage, SubMsg,
+    SubMsgResponse,
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
@@ -33,5 +34,10 @@ pub const TOKEN_ITEM_KEY: Item<String> = Item::new("token_item_key");
 pub trait Instantiate<A: Serialize + DeserializeOwned>: Sized {
     fn instantiate_msg(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg>;
 
-    fn save_asset(deps: DepsMut, reply: Reply, item: Item<A>) -> StdResult<Response>;
+    fn save_asset(
+        storage: &mut dyn Storage,
+        api: &dyn Api,
+        reply: Reply,
+        item: Item<A>,
+    ) -> StdResult<Response>;
 }
