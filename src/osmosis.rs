@@ -114,47 +114,27 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
     fn save_asset(
         storage: &mut dyn Storage,
         api: &dyn Api,
-        reply: Reply,
+        reply: &Reply,
         item: Item<AssetInfo>,
     ) -> StdResult<Response> {
-        if reply.id == REPLY_SAVE_OSMOSIS_DENOM {
-            let res = unwrap_reply(reply)?;
-            let osmosis_denom = parse_osmosis_denom_from_instantiate_event(res)
-                .map_err(|e| StdError::generic_err(format!("{}", e)))?;
+        match reply.id {
+            REPLY_SAVE_OSMOSIS_DENOM => {
+                let res = unwrap_reply(reply)?;
+                let osmosis_denom = parse_osmosis_denom_from_instantiate_event(res)
+                    .map_err(|e| StdError::generic_err(format!("{}", e)))?;
 
-            item.save(storage, &AssetInfo::Native(osmosis_denom.clone()))?;
+                item.save(storage, &AssetInfo::Native(osmosis_denom.clone()))?;
 
-            Ok(Response::new()
-                .add_attribute("action", "save_osmosis_denom")
-                .add_attribute("denom", &osmosis_denom))
-        } else {
-            Ok(Response::new())
+                Ok(Response::new()
+                    .add_attribute("action", "save_osmosis_denom")
+                    .add_attribute("denom", &osmosis_denom))
+            }
+            _ => Err(StdError::generic_err("Unexpected reply id")),
         }
     }
 }
 
 const REPLY_SAVE_OSMOSIS_DENOM: u64 = 14508;
-
-/// Save a osmosis denom from an instantiation event to the storage as a struct of type `A`.
-pub fn save_osmosis_denom<A: Transferable + From<String>>(
-    deps: DepsMut,
-    reply: Reply,
-    item: Item<A>,
-) -> StdResult<Response> {
-    if reply.id == REPLY_SAVE_OSMOSIS_DENOM {
-        let res = unwrap_reply(reply)?;
-        let osmosis_denom = parse_osmosis_denom_from_instantiate_event(res)
-            .map_err(|e| StdError::generic_err(format!("{}", e)))?;
-
-        item.save(deps.storage, &osmosis_denom.clone().into())?;
-
-        Ok(Response::new()
-            .add_attribute("action", "save_osmosis_denom")
-            .add_attribute("denom", &osmosis_denom))
-    } else {
-        Ok(Response::new())
-    }
-}
 
 fn parse_osmosis_denom_from_instantiate_event(response: SubMsgResponse) -> StdResult<String> {
     let event = response

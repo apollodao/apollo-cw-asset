@@ -123,19 +123,20 @@ impl Instantiate<AssetInfo> for Cw20AssetInstantiator {
     fn save_asset(
         storage: &mut dyn Storage,
         api: &dyn Api,
-        reply: Reply,
+        reply: &Reply,
         item: Item<AssetInfo>,
     ) -> StdResult<Response> {
-        if reply.id == REPLY_SAVE_CW20_ADDRESS {
-            let res = unwrap_reply(reply)?;
-            let asset = parse_contract_addr_from_instantiate_event(api, res)?;
+        match reply.id {
+            REPLY_SAVE_CW20_ADDRESS => {
+                let res = unwrap_reply(reply)?;
+                let asset = parse_contract_addr_from_instantiate_event(api, res)?;
 
-            item.save(storage, &asset.clone().into())?;
-            Ok(Response::new()
-                .add_attribute("action", "save_osmosis_denom")
-                .add_attribute("addr", &asset))
-        } else {
-            Ok(Response::new())
+                item.save(storage, &asset.clone().into())?;
+                Ok(Response::new()
+                    .add_attribute("action", "save_osmosis_denom")
+                    .add_attribute("addr", &asset))
+            }
+            _ => Err(StdError::generic_err("unexpected reply id")),
         }
     }
 }

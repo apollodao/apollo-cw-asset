@@ -12,8 +12,8 @@ use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
 /// Unwrap a `Reply` object to extract the response
 /// TODO: Copied from larrys steakhouse. Move to protocol
-pub(crate) fn unwrap_reply(reply: Reply) -> StdResult<SubMsgResponse> {
-    reply.result.into_result().map_err(StdError::generic_err)
+pub(crate) fn unwrap_reply(reply: &Reply) -> StdResult<SubMsgResponse> {
+    reply.clone().result.into_result().map_err(StdError::generic_err)
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -37,7 +37,7 @@ pub trait Instantiate<A: Serialize + DeserializeOwned>: Sized {
     fn save_asset(
         storage: &mut dyn Storage,
         api: &dyn Api,
-        reply: Reply,
+        reply: &Reply,
         item: Item<A>,
     ) -> StdResult<Response>;
 }
