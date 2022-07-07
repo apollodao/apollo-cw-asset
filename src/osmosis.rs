@@ -4,14 +4,12 @@ use crate::{
 };
 use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
 use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
-use cosmwasm_std::{
-    to_binary, Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage,
-    SubMsg, SubMsgResponse, Uint128,
-};
+use cosmwasm_std::{to_binary, Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage, SubMsg, SubMsgResponse, Uint128, Binary};
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::convert::TryFrom;
+use prost::Message;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct OsmosisCoin(Coin);
@@ -81,13 +79,15 @@ pub type OsmosisDenomInstantiator = String;
 
 impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
     fn instantiate_msg(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg> {
+        let req = MsgCreateDenom {
+            sender: env.contract.address.to_string(),
+            subdenom: self.clone(),
+        };
+        let req_bin = Binary::from(req.encode_to_vec());
         Ok(SubMsg::reply_always(
             CosmosMsg::Stargate {
                 type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateDenom".to_string(),
-                value: to_binary(&MsgCreateDenom {
-                    sender: env.contract.address.to_string(),
-                    subdenom: self.clone(),
-                })?,
+                value: req_bin,
             },
             REPLY_SAVE_OSMOSIS_DENOM,
         ))
