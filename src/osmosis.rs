@@ -1,6 +1,9 @@
-use std::convert::TryFrom;
-use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
+use crate::{
+    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, Mint, Transferable,
+    TOKEN_ITEM_KEY,
+};
 use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
+use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
 use cosmwasm_std::{
     to_binary, Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage,
     SubMsg, SubMsgResponse, Uint128,
@@ -8,10 +11,7 @@ use cosmwasm_std::{
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use crate::{
-    unwrap_reply, Asset, AssetInfo, Burn, ContractError, Instantiate, Mint, Transferable,
-    TOKEN_ITEM_KEY,
-};
+use std::convert::TryFrom;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct OsmosisCoin(Coin);
@@ -98,7 +98,7 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
         api: &dyn Api,
         reply: &Reply,
         item: Item<AssetInfo>,
-    ) -> Result<Response, ContractError> {
+    ) -> Result<Response, CwAssetError> {
         match reply.id {
             REPLY_SAVE_OSMOSIS_DENOM => {
                 let res = unwrap_reply(reply)?;
@@ -111,7 +111,7 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
                     .add_attribute("action", "save_osmosis_denom")
                     .add_attribute("denom", &osmosis_denom))
             }
-            _ => Err(ContractError::InvalidReplyId {}),
+            _ => Err(CwAssetError::InvalidReplyId {}),
         }
     }
 }

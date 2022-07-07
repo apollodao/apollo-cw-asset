@@ -5,7 +5,7 @@ use thiserror::Error;
 /// This enum describes router-test contract errors!
 #[derive(Error, Debug, PartialEq)]
 
-pub enum ContractError {
+pub enum CwAssetError {
     #[error("{0}")]
     Std(#[from] StdError),
 

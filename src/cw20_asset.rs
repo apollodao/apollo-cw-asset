@@ -11,7 +11,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
-use crate::{unwrap_reply, Asset, AssetInfo, Burn, ContractError, Instantiate, Mint, Transferable};
+use crate::{unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, Mint, Transferable};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Cw20Asset {
@@ -126,7 +126,7 @@ impl Instantiate<AssetInfo> for Cw20AssetInstantiator {
         api: &dyn Api,
         reply: &Reply,
         item: Item<AssetInfo>,
-    ) -> Result<Response, ContractError> {
+    ) -> Result<Response, CwAssetError> {
         match reply.id {
             REPLY_SAVE_CW20_ADDRESS => {
                 let res = unwrap_reply(reply)?;
@@ -137,7 +137,7 @@ impl Instantiate<AssetInfo> for Cw20AssetInstantiator {
                     .add_attribute("action", "save_osmosis_denom")
                     .add_attribute("addr", &asset))
             }
-            _ => Err(ContractError::InvalidReplyId {}),
+            _ => Err(CwAssetError::InvalidReplyId {}),
         }
     }
 }

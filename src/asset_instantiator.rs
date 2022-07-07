@@ -10,7 +10,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
-use crate::ContractError;
+use crate::CwAssetError;
 
 /// Unwrap a `Reply` object to extract the response
 /// TODO: Copied from larrys steakhouse. Move to protocol
@@ -41,5 +41,5 @@ pub trait Instantiate<A: Serialize + DeserializeOwned>: Sized {
         api: &dyn Api,
         reply: &Reply,
         item: Item<A>,
-    ) -> Result<Response, ContractError>;
+    ) -> Result<Response, CwAssetError>;
 }
