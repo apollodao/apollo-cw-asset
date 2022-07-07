@@ -134,7 +134,7 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
     }
 }
 
-const REPLY_SAVE_OSMOSIS_DENOM: u64 = 14508;
+pub const REPLY_SAVE_OSMOSIS_DENOM: u64 = 14508;
 
 fn parse_osmosis_denom_from_instantiate_event(response: SubMsgResponse) -> StdResult<String> {
     let event = response

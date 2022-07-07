@@ -46,7 +46,7 @@ impl TryFrom<Asset> for Cw20Asset {
 
 // ------ Implement Instantiate for Cw20Asset ------
 
-const REPLY_SAVE_CW20_ADDRESS: u64 = 14509;
+pub const REPLY_SAVE_CW20_ADDRESS: u64 = 14509;
 
 fn parse_contract_addr_from_instantiate_event(
     api: &dyn Api,
