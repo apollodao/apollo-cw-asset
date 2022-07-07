@@ -1,9 +1,14 @@
+use cosmwasm_std::StdError;
 use thiserror::Error;
 
 /// ## Description
 /// This enum describes router-test contract errors!
 #[derive(Error, Debug, PartialEq)]
+
 pub enum ContractError {
+    #[error("{0}")]
+    Std(#[from] StdError),
+
     /// Invalid Reply ID Error
     #[error("invalid reply id")]
     InvalidReplyId {},

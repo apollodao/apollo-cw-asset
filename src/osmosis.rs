@@ -9,7 +9,8 @@ use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::{
-    unwrap_reply, Asset, AssetInfo, Burn, Instantiate, Mint, Transferable, TOKEN_ITEM_KEY,
+    unwrap_reply, Asset, AssetInfo, Burn, ContractError, Instantiate, Mint, Transferable,
+    TOKEN_ITEM_KEY,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -97,7 +98,7 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
         api: &dyn Api,
         reply: &Reply,
         item: Item<AssetInfo>,
-    ) -> StdResult<Response> {
+    ) -> Result<Response, ContractError> {
         match reply.id {
             REPLY_SAVE_OSMOSIS_DENOM => {
                 let res = unwrap_reply(reply)?;
@@ -110,7 +111,7 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
                     .add_attribute("action", "save_osmosis_denom")
                     .add_attribute("denom", &osmosis_denom))
             }
-            _ => Err(StdError::generic_err("Unexpected reply id")),
+            _ => Err(ContractError::InvalidReplyId {}),
         }
     }
 }

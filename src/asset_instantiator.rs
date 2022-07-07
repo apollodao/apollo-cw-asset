@@ -10,6 +10,8 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
+use crate::ContractError;
+
 /// Unwrap a `Reply` object to extract the response
 /// TODO: Copied from larrys steakhouse. Move to protocol
 pub(crate) fn unwrap_reply(reply: &Reply) -> StdResult<SubMsgResponse> {
@@ -39,5 +41,5 @@ pub trait Instantiate<A: Serialize + DeserializeOwned>: Sized {
         api: &dyn Api,
         reply: &Reply,
         item: Item<A>,
-    ) -> StdResult<Response>;
+    ) -> Result<Response, ContractError>;
 }
