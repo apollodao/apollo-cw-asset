@@ -99,6 +99,7 @@ impl Burn for Cw20Asset {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Cw20AssetInstantiator {
     pub label: String,
     pub admin: Option<String>,
