@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
-
+use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
+use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
 use cosmwasm_std::{
     to_binary, Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage,
     SubMsg, SubMsgResponse, Uint128,
@@ -7,7 +8,6 @@ use cosmwasm_std::{
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
 use crate::{
     unwrap_reply, Asset, AssetInfo, Burn, Instantiate, Mint, Transferable, TOKEN_ITEM_KEY,
 };
@@ -50,11 +50,11 @@ impl Mint for OsmosisCoin {
     ) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Stargate {
             type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
-            value: to_binary(&OsmosisMintMsg {
-                amount: Coin {
-                    denom: self.0.denom.clone(),
-                    amount: self.0.amount,
-                },
+            value: to_binary(&MsgMint {
+                amount: Some(CoinMsg {
+                    denom: self.0.denom.to_string(),
+                    amount: self.0.amount.to_string(),
+                }),
                 sender: sender.into(),
             })?,
         })
@@ -65,34 +65,15 @@ impl Burn for OsmosisCoin {
     fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Stargate {
             type_url: "/osmosis.tokenfactory.v1beta1.MsgBurn".to_string(),
-            value: to_binary(&OsmosisBurnMsg {
-                amount: Coin {
-                    denom: self.0.denom.clone(),
-                    amount: self.0.amount,
-                },
+            value: to_binary(&MsgBurn {
+                amount: Some(CoinMsg {
+                    denom: self.0.denom.to_string(),
+                    amount: self.0.amount.to_string(),
+                }),
                 sender: sender.into(),
             })?,
         })
     }
-}
-
-// TODO: Fix stargate to use .proto files and remove these structs
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-struct OsmosisMintMsg {
-    amount: Coin,
-    sender: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-struct OsmosisBurnMsg {
-    amount: Coin,
-    sender: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct OsmosisCreateDenomMsg {
-    sender: String,
-    subdenom: String,
 }
 
 pub type OsmosisDenomInstantiator = String;
@@ -102,7 +83,7 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
         Ok(SubMsg::reply_always(
             CosmosMsg::Stargate {
                 type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateDenom".to_string(),
-                value: to_binary(&OsmosisCreateDenomMsg {
+                value: to_binary(&MsgCreateDenom {
                     sender: env.contract.address.to_string(),
                     subdenom: self.clone(),
                 })?,
