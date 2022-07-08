@@ -329,11 +329,11 @@ pub trait Transferable: Into<Asset> + Clone + Serialize + DeserializeOwned {
 }
 
 pub trait Mint {
-    fn mint_msg<A: Into<String>, B: Into<String>>(
+    fn mint_msgs<A: Into<String>, B: Into<String>>(
         &self,
         sender: A,
         recipient: B,
-    ) -> StdResult<CosmosMsg>;
+    ) -> StdResult<Vec<CosmosMsg>>;
 
     fn is_mintable() -> bool {
         true

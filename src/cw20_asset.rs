@@ -71,19 +71,19 @@ fn parse_contract_addr_from_instantiate_event(
 impl Transferable for Cw20Asset {}
 
 impl Mint for Cw20Asset {
-    fn mint_msg<A: Into<String>, B: Into<String>>(
+    fn mint_msgs<A: Into<String>, B: Into<String>>(
         &self,
         _sender: A,
         recipient: B,
-    ) -> StdResult<CosmosMsg> {
-        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+    ) -> StdResult<Vec<CosmosMsg>> {
+        Ok(vec![CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: self.address.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Mint {
                 recipient: recipient.into(),
                 amount: self.amount,
             })?,
             funds: vec![],
-        }))
+        })])
     }
 }
 

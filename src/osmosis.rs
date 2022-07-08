@@ -4,12 +4,15 @@ use crate::{
 };
 use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
 use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
-use cosmwasm_std::{to_binary, Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage, SubMsg, SubMsgResponse, Uint128, Binary};
+use apollo_proto_rust::utils::encode;
+use cosmwasm_std::{
+    to_binary, Api, Binary, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult,
+    Storage, SubMsg, SubMsgResponse, Uint128,
+};
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::convert::TryFrom;
-use apollo_proto_rust::utils::encode;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct OsmosisCoin(Coin);
@@ -42,21 +45,24 @@ impl TryFrom<Asset> for OsmosisCoin {
 impl Transferable for OsmosisCoin {}
 
 impl Mint for OsmosisCoin {
-    fn mint_msg<A: Into<String>, B: Into<String>>(
+    fn mint_msgs<A: Into<String>, B: Into<String>>(
         &self,
         sender: A,
-        _recipient: B,
-    ) -> StdResult<CosmosMsg> {
-        Ok(CosmosMsg::Stargate {
-            type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
-            value: encode(MsgMint {
-                amount: Some(CoinMsg {
-                    denom: self.0.denom.to_string(),
-                    amount: self.0.amount.to_string(),
+        recipient: B,
+    ) -> StdResult<Vec<CosmosMsg>> {
+        Ok(vec![
+            CosmosMsg::Stargate {
+                type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
+                value: encode(MsgMint {
+                    amount: Some(CoinMsg {
+                        denom: self.0.denom.to_string(),
+                        amount: self.0.amount.to_string(),
+                    }),
+                    sender: sender.into(),
                 }),
-                sender: sender.into(),
-            }),
-        })
+            },
+            self.transfer_msg(recipient)?,
+        ])
     }
 }
 
