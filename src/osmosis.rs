@@ -5,6 +5,7 @@ use crate::{
 use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
 use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
 use apollo_proto_rust::utils::encode;
+use apollo_proto_rust::OsmosisTypeURLs;
 use cosmwasm_std::{
     to_binary, Api, Binary, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult,
     Storage, SubMsg, SubMsgResponse, Uint128,
@@ -52,7 +53,7 @@ impl Mint for OsmosisCoin {
     ) -> StdResult<Vec<CosmosMsg>> {
         Ok(vec![
             CosmosMsg::Stargate {
-                type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
+                type_url: OsmosisTypeURLs::Mint.to_string(),
                 value: encode(MsgMint {
                     amount: Some(CoinMsg {
                         denom: self.0.denom.to_string(),
@@ -69,7 +70,7 @@ impl Mint for OsmosisCoin {
 impl Burn for OsmosisCoin {
     fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Stargate {
-            type_url: "/osmosis.tokenfactory.v1beta1.MsgBurn".to_string(),
+            type_url: OsmosisTypeURLs::Burn.to_string(),
             value: encode(MsgBurn {
                 amount: Some(CoinMsg {
                     denom: self.0.denom.to_string(),
@@ -87,7 +88,7 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
     fn instantiate_msg(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg> {
         Ok(SubMsg::reply_always(
             CosmosMsg::Stargate {
-                type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateDenom".to_string(),
+                type_url: OsmosisTypeURLs::CreateDenom.to_string(),
                 value: encode(MsgCreateDenom {
                     sender: env.contract.address.to_string(),
                     subdenom: self.clone(),
