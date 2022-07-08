@@ -9,7 +9,7 @@ use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::convert::TryFrom;
-use prost::Message;
+use apollo_proto_rust::utils::encode;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct OsmosisCoin(Coin);
@@ -49,13 +49,13 @@ impl Mint for OsmosisCoin {
     ) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Stargate {
             type_url: "/osmosis.tokenfactory.v1beta1.MsgMint".to_string(),
-            value: to_binary(&MsgMint {
+            value: encode(MsgMint {
                 amount: Some(CoinMsg {
                     denom: self.0.denom.to_string(),
                     amount: self.0.amount.to_string(),
                 }),
                 sender: sender.into(),
-            })?,
+            }),
         })
     }
 }
@@ -64,13 +64,13 @@ impl Burn for OsmosisCoin {
     fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Stargate {
             type_url: "/osmosis.tokenfactory.v1beta1.MsgBurn".to_string(),
-            value: to_binary(&MsgBurn {
+            value: encode(MsgBurn {
                 amount: Some(CoinMsg {
                     denom: self.0.denom.to_string(),
                     amount: self.0.amount.to_string(),
                 }),
                 sender: sender.into(),
-            })?,
+            }),
         })
     }
 }
@@ -79,15 +79,13 @@ pub type OsmosisDenomInstantiator = String;
 
 impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
     fn instantiate_msg(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg> {
-        let req = MsgCreateDenom {
-            sender: env.contract.address.to_string(),
-            subdenom: self.clone(),
-        };
-        let req_bin = Binary::from(req.encode_to_vec());
         Ok(SubMsg::reply_always(
             CosmosMsg::Stargate {
                 type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateDenom".to_string(),
-                value: req_bin,
+                value: encode(MsgCreateDenom {
+                    sender: env.contract.address.to_string(),
+                    subdenom: self.clone(),
+                }),
             },
             REPLY_SAVE_OSMOSIS_DENOM,
         ))
