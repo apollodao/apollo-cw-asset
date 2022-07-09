@@ -43,6 +43,14 @@ impl TryFrom<Asset> for OsmosisCoin {
     }
 }
 
+impl TryFrom<&Asset> for OsmosisCoin {
+    type Error = StdError;
+
+    fn try_from(asset: &Asset) -> StdResult<Self> {
+        Self::try_from(asset.clone())
+    }
+}
+
 impl Transferable for OsmosisCoin {}
 
 impl Mint for OsmosisCoin {
