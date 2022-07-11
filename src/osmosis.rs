@@ -16,7 +16,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::convert::TryFrom;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct OsmosisCoin(Coin);
+pub struct OsmosisCoin(pub Coin);
 
 impl From<OsmosisCoin> for Asset {
     fn from(asset: OsmosisCoin) -> Asset {
