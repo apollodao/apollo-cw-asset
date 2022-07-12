@@ -1,5 +1,5 @@
 use crate::{
-    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, Mint, Transferable,
+    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transferable,
     TOKEN_ITEM_KEY,
 };
 use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
@@ -48,6 +48,12 @@ impl TryFrom<&Asset> for OsmosisCoin {
 
     fn try_from(asset: &Asset) -> StdResult<Self> {
         Self::try_from(asset.clone())
+    }
+}
+
+impl IsNative for OsmosisCoin {
+    fn is_native(&self) -> bool {
+        true
     }
 }
 

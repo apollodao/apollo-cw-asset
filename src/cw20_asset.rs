@@ -11,7 +11,9 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
-use crate::{unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, Mint, Transferable};
+use crate::{
+    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transferable,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Cw20Asset {
@@ -69,6 +71,12 @@ fn parse_contract_addr_from_instantiate_event(
 }
 
 impl Transferable for Cw20Asset {}
+
+impl IsNative for Cw20Asset {
+    fn is_native(&self) -> bool {
+        false
+    }
+}
 
 impl Mint for Cw20Asset {
     fn mint_msgs<A: Into<String>, B: Into<String>>(
