@@ -73,7 +73,7 @@ fn parse_contract_addr_from_instantiate_event(
 impl Transferable for Cw20Asset {}
 
 impl IsNative for Cw20Asset {
-    fn is_native(&self) -> bool {
+    fn is_native() -> bool {
         false
     }
 }

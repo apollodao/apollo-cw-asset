@@ -52,7 +52,7 @@ impl TryFrom<&Asset> for OsmosisCoin {
 }
 
 impl IsNative for OsmosisCoin {
-    fn is_native(&self) -> bool {
+    fn is_native() -> bool {
         true
     }
 }

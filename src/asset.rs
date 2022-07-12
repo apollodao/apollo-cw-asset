@@ -349,7 +349,7 @@ pub trait Burn {
 }
 
 pub trait IsNative {
-    fn is_native(&self) -> bool;
+    fn is_native() -> bool;
 }
 
 //--------------------------------------------------------------------------------------------------
