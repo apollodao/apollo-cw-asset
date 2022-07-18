@@ -537,7 +537,7 @@ mod tests {
 
         let checked = mock_list();
         let unchecked: AssetListUnchecked = checked.clone().into();
-        assert_eq!(unchecked.check(&api, None).unwrap(), checked.clone());
+        assert_eq!(unchecked.check(&api, None).unwrap(), checked);
         assert_eq!(unchecked.check(&api, Some(&["uusd", "uluna"])).unwrap(), checked);
         assert_eq!(
             unchecked.check(&api, Some(&["uatom", "uosmo", "uscrt"])),
@@ -602,7 +602,7 @@ mod tests {
         let mut list = mock_list();
         list.add_many(&mock_list()).unwrap();
 
-        let expected = mock_list().apply(|a| a.amount = a.amount * Uint128::new(2)).clone();
+        let expected = mock_list().apply(|a| a.amount *= Uint128::new(2)).clone();
         assert_eq!(list, expected);
     }
 

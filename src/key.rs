@@ -17,7 +17,7 @@ macro_rules! impl_from {
                 Self(info.to_string().into_bytes())
             }
         }
-    }
+    };
 }
 
 impl_from!(AssetInfo);
@@ -70,10 +70,7 @@ mod test {
     use cw_storage_plus::Map;
 
     fn mock_keys() -> (AssetInfo, AssetInfo) {
-        (
-            AssetInfo::cw20(Addr::unchecked("mars_token")),
-            AssetInfo::native("uosmo"),
-        )
+        (AssetInfo::cw20(Addr::unchecked("mars_token")), AssetInfo::native("uosmo"))
     }
 
     #[test]
@@ -101,7 +98,7 @@ mod test {
 
         let items = map
             .range(deps.as_ref().storage, None, None, Order::Ascending)
-            .map(|item| { item.unwrap() })
+            .map(|item| item.unwrap())
             .collect::<Vec<_>>();
 
         assert_eq!(items.len(), 2);
@@ -115,38 +112,19 @@ mod test {
         let (key_1, key_2) = &mock_keys();
         let map: Map<(AssetInfoKey, Addr), u64> = Map::new("map");
 
-        map.save(
-            deps.as_mut().storage,
-            (key_1.into(), Addr::unchecked("larry")),
-            &42069,
-        )
-        .unwrap();
+        map.save(deps.as_mut().storage, (key_1.into(), Addr::unchecked("larry")), &42069).unwrap();
 
-        map.save(
-            deps.as_mut().storage,
-            (key_1.into(), Addr::unchecked("jake")),
-            &69420,
-        )
-        .unwrap();
+        map.save(deps.as_mut().storage, (key_1.into(), Addr::unchecked("jake")), &69420).unwrap();
 
-        map.save(
-            deps.as_mut().storage,
-            (key_2.into(), Addr::unchecked("larry")),
-            &88888,
-        )
-        .unwrap();
+        map.save(deps.as_mut().storage, (key_2.into(), Addr::unchecked("larry")), &88888).unwrap();
 
-        map.save(
-            deps.as_mut().storage,
-            (key_2.into(), Addr::unchecked("jake")),
-            &123456789,
-        )
-        .unwrap();
+        map.save(deps.as_mut().storage, (key_2.into(), Addr::unchecked("jake")), &123456789)
+            .unwrap();
 
         let items = map
             .prefix(key_1.into())
             .range(deps.as_ref().storage, None, None, Order::Ascending)
-            .map(|item| { item.unwrap() })
+            .map(|item| item.unwrap())
             .collect::<Vec<_>>();
 
         assert_eq!(items.len(), 2);
@@ -156,7 +134,7 @@ mod test {
         let items = map
             .prefix(key_2.into())
             .range(deps.as_ref().storage, None, None, Order::Ascending)
-            .map(|item| { item.unwrap() })
+            .map(|item| item.unwrap())
             .collect::<Vec<_>>();
 
         assert_eq!(items.len(), 2);

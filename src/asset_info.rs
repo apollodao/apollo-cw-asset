@@ -1,5 +1,4 @@
-use std::fmt;
-use std::str::FromStr;
+use crate::Asset;
 use cosmwasm_std::{
     to_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdError,
     StdResult, Uint128, WasmQuery,
@@ -7,7 +6,8 @@ use cosmwasm_std::{
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use crate::Asset;
+use std::fmt;
+use std::str::FromStr;
 
 /// Represents the type of an fungible asset
 ///
@@ -70,9 +70,10 @@ impl FromStr for AssetInfoUnchecked {
         match words[0] {
             "native" => Ok(AssetInfoUnchecked::Native(String::from(words[1]))),
             "cw20" => Ok(AssetInfoUnchecked::Cw20(String::from(words[1]))),
-            ty => Err(StdError::generic_err(
-                format!("invalid asset type `{}`; must be `native` or `cw20`", ty)
-            ))
+            ty => Err(StdError::generic_err(format!(
+                "invalid asset type `{}`; must be `native` or `cw20`",
+                ty
+            ))),
         }
     }
 }
@@ -111,19 +112,25 @@ impl AssetInfoUnchecked {
     ///     }
     /// }
     /// ```
-    pub fn check(&self, api: &dyn Api, optional_whitelist: Option<&[&str]>) -> StdResult<AssetInfo> {
+    pub fn check(
+        &self,
+        api: &dyn Api,
+        optional_whitelist: Option<&[&str]>,
+    ) -> StdResult<AssetInfo> {
         Ok(match self {
             AssetInfoUnchecked::Cw20(contract_addr) => {
-                // NOTE: We cast all contract addresses to lowercase, in order to prevent 
+                // NOTE: We cast all contract addresses to lowercase, in order to prevent
                 // [a potential exploit](https://github.com/mars-protocol/cw-asset/issues/3)
                 AssetInfo::Cw20(api.addr_validate(&contract_addr.to_lowercase())?)
             }
             AssetInfoUnchecked::Native(denom) => {
                 if let Some(whitelist) = optional_whitelist {
                     if !whitelist.contains(&&denom[..]) {
-                        return Err(StdError::generic_err(
-                            format!("invalid denom {}; must be {}", denom, whitelist.join("|"))
-                        ));
+                        return Err(StdError::generic_err(format!(
+                            "invalid denom {}; must be {}",
+                            denom,
+                            whitelist.join("|")
+                        )));
                     }
                 }
                 AssetInfo::Native(denom.clone())
@@ -215,18 +222,18 @@ mod test {
         let astro = AssetInfo::cw20(Addr::unchecked("astro_token"));
         let mars = AssetInfo::cw20(Addr::unchecked("mars_token"));
 
-        assert_eq!(uluna == uusd, false);
-        assert_eq!(uluna == astro, false);
-        assert_eq!(astro == mars, false);
-        assert_eq!(uluna == uluna.clone(), true);
-        assert_eq!(astro == astro.clone(), true);
+        assert_ne!(uluna, uusd);
+        assert_ne!(uluna, astro);
+        assert_ne!(astro, mars);
+        assert_eq!(uluna, uluna.clone());
+        assert_eq!(astro, astro.clone());
     }
 
     #[test]
     fn from_string() {
         let s = "native:uusd:12345";
         assert_eq!(
-            AssetInfoUnchecked::from_str(s), 
+            AssetInfoUnchecked::from_str(s),
             Err(StdError::generic_err("invalid asset info format `native:uusd:12345`; must be in format `native:{denom}` or `cw20:{contract_addr}`")),
         );
 
@@ -237,10 +244,7 @@ mod test {
         );
 
         let s = "native:uusd";
-        assert_eq!(
-            AssetInfoUnchecked::from_str(s).unwrap(),
-            AssetInfoUnchecked::native("uusd"),
-        );
+        assert_eq!(AssetInfoUnchecked::from_str(s).unwrap(), AssetInfoUnchecked::native("uusd"),);
 
         let s = "cw20:mock_token";
         assert_eq!(
