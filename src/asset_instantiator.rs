@@ -13,7 +13,6 @@ use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 use crate::CwAssetError;
 
 /// Unwrap a `Reply` object to extract the response
-/// TODO: Copied from larrys steakhouse. Move to protocol
 pub(crate) fn unwrap_reply(reply: &Reply) -> StdResult<SubMsgResponse> {
     reply.clone().result.into_result().map_err(StdError::generic_err)
 }
