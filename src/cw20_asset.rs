@@ -1,15 +1,13 @@
-use std::convert::TryFrom;
-
 use cosmwasm_std::{
-    to_binary, Addr, Api, CosmosMsg, Deps, DepsMut, Env, Reply, Response, StdError, StdResult,
-    Storage, SubMsg, SubMsgResponse, Uint128, WasmMsg,
+    to_binary, Addr, Api, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage,
+    SubMsg, SubMsgResponse, Uint128, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
+use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
-use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 use crate::{
     unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transferable,
@@ -96,7 +94,7 @@ impl Mint for Cw20Asset {
 }
 
 impl Burn for Cw20Asset {
-    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
+    fn burn_msg<A: Into<String>>(&self, _sender: A) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: self.address.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Burn {

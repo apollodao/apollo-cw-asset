@@ -1,15 +1,12 @@
 use std::fmt;
 use std::str::FromStr;
-
 use cosmwasm_std::{
     to_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdError,
     StdResult, Uint128, WasmQuery,
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
 use crate::Asset;
 
 /// Represents the type of an fungible asset

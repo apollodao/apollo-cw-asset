@@ -1,17 +1,13 @@
-use std::convert::TryFrom;
-use std::fmt;
-use std::str::FromStr;
-
+use super::asset_info::{AssetInfo, AssetInfoBase, AssetInfoUnchecked};
 use cosmwasm_std::{
     to_binary, Addr, Api, BankMsg, Binary, Coin, CosmosMsg, StdError, StdResult, Uint128, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
-
-use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
-use super::asset_info::{AssetInfo, AssetInfoBase, AssetInfoUnchecked};
+use std::convert::TryFrom;
+use std::fmt;
+use std::str::FromStr;
 
 /// Represents a fungible asset with a known amount
 ///

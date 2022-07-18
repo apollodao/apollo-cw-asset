@@ -1,16 +1,12 @@
-use std::vec;
-
+use crate::CwAssetError;
 use cosmwasm_std::{
-    Addr, Api, Deps, DepsMut, Env, Reply, Response, StdError, StdResult, Storage, SubMsg,
-    SubMsgResponse,
+    Api, DepsMut, Env, Reply, Response, StdError, StdResult, Storage, SubMsg, SubMsgResponse,
 };
+use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
-use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
-
-use crate::CwAssetError;
+use std::vec;
 
 /// Unwrap a `Reply` object to extract the response
 pub(crate) fn unwrap_reply(reply: &Reply) -> StdResult<SubMsgResponse> {

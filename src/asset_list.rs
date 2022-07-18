@@ -1,15 +1,11 @@
-use std::fmt;
-use std::str::FromStr;
-
-use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, StdError, StdResult};
-
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
-use crate::Transferable;
-
 use super::asset::{Asset, AssetBase, AssetUnchecked};
 use super::asset_info::AssetInfo;
+use crate::Transferable;
+use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, StdError, StdResult};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::str::FromStr;
 
 /// Represents a list of fungible tokens, each with a known amount
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -1,18 +1,17 @@
 use crate::{
     unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transferable,
-    TOKEN_ITEM_KEY,
 };
 use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
 use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
 use apollo_proto_rust::utils::encode;
 use apollo_proto_rust::OsmosisTypeURLs;
 use cosmwasm_std::{
-    to_binary, Api, Binary, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult,
-    Storage, SubMsg, SubMsgResponse, Uint128,
+    Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage, SubMsg,
+    SubMsgResponse,
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -99,7 +98,7 @@ impl Burn for OsmosisCoin {
 pub type OsmosisDenomInstantiator = String;
 
 impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
-    fn instantiate_msg(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg> {
+    fn instantiate_msg(&self, _deps: DepsMut, env: Env) -> StdResult<SubMsg> {
         Ok(SubMsg::reply_always(
             CosmosMsg::Stargate {
                 type_url: OsmosisTypeURLs::CreateDenom.to_string(),
@@ -114,7 +113,7 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
 
     fn save_asset(
         storage: &mut dyn Storage,
-        api: &dyn Api,
+        _api: &dyn Api,
         reply: &Reply,
         item: Item<AssetInfo>,
     ) -> Result<Response, CwAssetError> {

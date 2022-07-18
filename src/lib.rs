@@ -8,7 +8,7 @@
 //!
 //! ```rust
 //! use cosmwasm_std::{Api, Response, StdResult};
-//! use cw_asset::Asset;
+//! use cw_asset::{Asset, Transferable};
 //!
 //! fn transfer_two_assets(api: &dyn Api) -> StdResult<Response> {
 //!     let asset1 = Asset::native("uusd", 12345u128);
