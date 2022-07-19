@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
 use crate::{
-    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transferable,
+    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transfer,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -68,7 +68,34 @@ fn parse_contract_addr_from_instantiate_event(
     api.addr_validate(contract_addr_str)
 }
 
-impl Transferable for Cw20Asset {}
+impl Transfer for Cw20Asset {
+    fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg> {
+        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: self.address.to_string(),
+            msg: to_binary(&Cw20ExecuteMsg::Transfer {
+                recipient: to.into(),
+                amount: self.amount,
+            })?,
+            funds: vec![],
+        }))
+    }
+
+    fn transfer_from_msg<A: Into<String>, B: Into<String>>(
+        &self,
+        from: A,
+        to: B,
+    ) -> StdResult<CosmosMsg> {
+        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: self.address.to_string(),
+            msg: to_binary(&Cw20ExecuteMsg::TransferFrom {
+                owner: from.into(),
+                recipient: to.into(),
+                amount: self.amount,
+            })?,
+            funds: vec![],
+        }))
+    }
+}
 
 impl IsNative for Cw20Asset {
     fn is_native() -> bool {

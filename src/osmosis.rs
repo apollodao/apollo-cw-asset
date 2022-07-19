@@ -1,13 +1,13 @@
 use crate::{
-    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transferable,
+    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transfer,
 };
 use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
 use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
 use apollo_proto_rust::utils::encode;
 use apollo_proto_rust::OsmosisTypeURLs;
 use cosmwasm_std::{
-    Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage, SubMsg,
-    SubMsgResponse,
+    Api, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage,
+    SubMsg, SubMsgResponse,
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
@@ -56,7 +56,25 @@ impl IsNative for OsmosisCoin {
     }
 }
 
-impl Transferable for OsmosisCoin {}
+impl Transfer for OsmosisCoin {
+    fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg> {
+        Ok(CosmosMsg::Bank(BankMsg::Send {
+            to_address: to.into(),
+            amount: vec![Coin {
+                denom: self.0.denom.to_string(),
+                amount: self.0.amount,
+            }],
+        }))
+    }
+
+    fn transfer_from_msg<A: Into<String>, B: Into<String>>(
+        &self,
+        _from: A,
+        _to: B,
+    ) -> StdResult<CosmosMsg> {
+        unimplemented!()
+    }
+}
 
 impl Mint for OsmosisCoin {
     fn mint_msgs<A: Into<String>, B: Into<String>>(

@@ -203,9 +203,7 @@ impl std::cmp::PartialEq<Coin> for Asset {
     }
 }
 
-impl Transferable for Asset {}
-
-pub trait Transferable: Into<Asset> + Clone + Serialize + DeserializeOwned {
+impl Asset {
     /// Generate a message that sends a CW20 token to the specified recipient with a binary payload
     ///
     /// NOTE: Only works for CW20 tokens. Returns error if invoked on an [`Asset`] instance
@@ -230,14 +228,13 @@ pub trait Transferable: Into<Asset> + Clone + Serialize + DeserializeOwned {
     ///         .add_attribute("asset_sent", asset.to_string()))
     /// }
     /// ```
-    fn send_msg<A: Into<String>>(&self, to: A, msg: Binary) -> StdResult<CosmosMsg> {
-        let asset: Asset = self.to_owned().into();
-        match asset.info {
+    pub fn send_msg<A: Into<String>>(&self, to: A, msg: Binary) -> StdResult<CosmosMsg> {
+        match &self.info {
             AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: contract_addr.into(),
                 msg: to_binary(&Cw20ExecuteMsg::Send {
                     contract: to.into(),
-                    amount: asset.amount,
+                    amount: self.amount,
                     msg,
                 })?,
                 funds: vec![],
@@ -262,22 +259,21 @@ pub trait Transferable: Into<Asset> + Clone + Serialize + DeserializeOwned {
     ///         .add_attribute("asset_sent", asset.to_string()))
     /// }
     /// ```
-    fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg> {
-        let asset: Asset = self.to_owned().into();
-        match asset.info {
+    pub fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg> {
+        match &self.info {
             AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: contract_addr.into(),
                 msg: to_binary(&Cw20ExecuteMsg::Transfer {
                     recipient: to.into(),
-                    amount: asset.amount,
+                    amount: self.amount,
                 })?,
                 funds: vec![],
             })),
             AssetInfo::Native(denom) => Ok(CosmosMsg::Bank(BankMsg::Send {
                 to_address: to.into(),
                 amount: vec![Coin {
-                    denom,
-                    amount: asset.amount,
+                    denom: denom.clone(),
+                    amount: self.amount,
                 }],
             })),
         }
@@ -301,19 +297,18 @@ pub trait Transferable: Into<Asset> + Clone + Serialize + DeserializeOwned {
     ///         .add_attribute("asset_drawn", asset.to_string()))
     /// }
     /// ```
-    fn transfer_from_msg<A: Into<String>, B: Into<String>>(
+    pub fn transfer_from_msg<A: Into<String>, B: Into<String>>(
         &self,
         from: A,
         to: B,
     ) -> StdResult<CosmosMsg> {
-        let asset: Asset = self.to_owned().into();
-        match asset.info {
+        match &self.info {
             AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: contract_addr.into(),
                 msg: to_binary(&Cw20ExecuteMsg::TransferFrom {
                     owner: from.into(),
                     recipient: to.into(),
-                    amount: asset.amount,
+                    amount: self.amount,
                 })?,
                 funds: vec![],
             })),
@@ -322,6 +317,19 @@ pub trait Transferable: Into<Asset> + Clone + Serialize + DeserializeOwned {
             }
         }
     }
+}
+
+pub trait Send {
+    fn send_msg<A: Into<String>>(&self, to: A, msg: Binary) -> StdResult<CosmosMsg>;
+}
+
+pub trait Transfer {
+    fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg>;
+    fn transfer_from_msg<A: Into<String>, B: Into<String>>(
+        &self,
+        from: A,
+        to: B,
+    ) -> StdResult<CosmosMsg>;
 }
 
 pub trait Mint {

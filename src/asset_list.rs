@@ -1,6 +1,5 @@
 use super::asset::{Asset, AssetBase, AssetUnchecked};
 use super::asset_info::AssetInfo;
-use crate::Transferable;
 use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, StdError, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
