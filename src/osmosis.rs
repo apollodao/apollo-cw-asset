@@ -57,6 +57,14 @@ impl TryFrom<&Asset> for OsmosisCoin {
     }
 }
 
+impl TryFrom<OsmosisCoin> for Coin {
+    type Error = StdError;
+
+    fn try_from(asset: OsmosisCoin) -> StdResult<Self> {
+        Ok(asset.0)
+    }
+}
+
 impl IsNative for OsmosisCoin {
     fn is_native() -> bool {
         true
