@@ -121,8 +121,8 @@ impl Burn for OsmosisDenom {
 }
 
 pub struct OsmosisDenomInstantiator {
-    denom: String,
-    sender: String,
+    pub denom: String,
+    pub sender: String,
 }
 
 impl Instantiate<OsmosisDenom> for OsmosisDenomInstantiator {
