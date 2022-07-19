@@ -7,7 +7,7 @@ use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
+use std::{convert::TryFrom, fmt::Display};
 
 use crate::{
     unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transfer,
@@ -17,6 +17,12 @@ use crate::{
 pub struct Cw20Asset {
     pub address: Addr,
     pub amount: Uint128,
+}
+
+impl Display for Cw20Asset {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "address: {}, amount: {}", self.address, self.amount)
+    }
 }
 
 impl From<Cw20Asset> for Asset {
