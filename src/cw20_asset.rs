@@ -9,52 +9,33 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, fmt::Display};
 
-use crate::{
-    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transfer,
-};
+use crate::{unwrap_reply, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transfer};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Cw20Asset {
-    pub address: Addr,
-    pub amount: Uint128,
-}
+pub struct Cw20(pub Addr);
 
-impl Display for Cw20Asset {
+impl Display for Cw20 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "address: {}, amount: {}", self.address, self.amount)
+        write!(f, "{}", self.0)
     }
 }
 
-impl From<Cw20Asset> for Asset {
-    fn from(cw20_asset: Cw20Asset) -> Self {
-        Asset {
-            amount: cw20_asset.amount,
-            info: AssetInfo::Cw20(cw20_asset.address),
-        }
+impl From<Cw20> for AssetInfo {
+    fn from(cw20_asset: Cw20) -> Self {
+        AssetInfo::Cw20(cw20_asset.0)
     }
 }
 
-impl TryFrom<Asset> for Cw20Asset {
+impl TryFrom<AssetInfo> for Cw20 {
     type Error = StdError;
 
-    fn try_from(asset: Asset) -> StdResult<Self> {
-        match asset.info {
-            AssetInfo::Cw20(address) => Ok(Cw20Asset {
-                address,
-                amount: asset.amount,
-            }),
+    fn try_from(asset_info: AssetInfo) -> StdResult<Self> {
+        match asset_info {
+            AssetInfo::Cw20(address) => Ok(Cw20(address)),
             AssetInfo::Native(_) => {
-                Err(StdError::generic_err("Cannot convert native asset to Cw20."))
+                Err(StdError::generic_err("Cannot convert native addr to Cw20."))
             }
         }
-    }
-}
-
-impl TryFrom<Cw20Asset> for Coin {
-    type Error = StdError;
-
-    fn try_from(asset: Cw20Asset) -> StdResult<Self> {
-        Err(StdError::generic_err("Cannot convert Cw20 asset to Coin."))
     }
 }
 
@@ -82,13 +63,13 @@ fn parse_contract_addr_from_instantiate_event(
     api.addr_validate(contract_addr_str)
 }
 
-impl Transfer for Cw20Asset {
-    fn transfer<A: Into<String>>(&self, to: A) -> StdResult<Response> {
+impl Transfer for Cw20 {
+    fn transfer<A: Into<String>>(&self, to: A, amount: Uint128) -> StdResult<Response> {
         Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: self.address.to_string(),
+            contract_addr: self.0.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Transfer {
                 recipient: to.into(),
-                amount: self.amount,
+                amount,
             })?,
             funds: vec![],
         })))
@@ -98,48 +79,50 @@ impl Transfer for Cw20Asset {
         &self,
         from: A,
         to: B,
+        amount: Uint128,
     ) -> StdResult<Response> {
         Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: self.address.to_string(),
+            contract_addr: self.0.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::TransferFrom {
                 owner: from.into(),
                 recipient: to.into(),
-                amount: self.amount,
+                amount,
             })?,
             funds: vec![],
         })))
     }
 }
 
-impl IsNative for Cw20Asset {
+impl IsNative for Cw20 {
     fn is_native() -> bool {
         false
     }
 }
 
-impl Mint for Cw20Asset {
+impl Mint for Cw20 {
     fn mint<A: Into<String>, B: Into<String>>(
         &self,
         _sender: A,
         recipient: B,
+        amount: Uint128,
     ) -> StdResult<Response> {
         Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: self.address.to_string(),
+            contract_addr: self.0.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Mint {
                 recipient: recipient.into(),
-                amount: self.amount,
+                amount,
             })?,
             funds: vec![],
         })))
     }
 }
 
-impl Burn for Cw20Asset {
-    fn burn<A: Into<String>>(&self, _sender: A) -> StdResult<Response> {
+impl Burn for Cw20 {
+    fn burn<A: Into<String>>(&self, _sender: A, amount: Uint128) -> StdResult<Response> {
         Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: self.address.to_string(),
+            contract_addr: self.0.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Burn {
-                amount: self.amount,
+                amount,
             })?,
             funds: vec![],
         })))
@@ -154,8 +137,8 @@ pub struct Cw20AssetInstantiator {
     pub cw20_init_msg: Cw20InstantiateMsg,
 }
 
-impl Instantiate<AssetInfo> for Cw20AssetInstantiator {
-    fn instantiate_msg(&self, _deps: DepsMut, _env: Env) -> StdResult<SubMsg> {
+impl Instantiate<Cw20> for Cw20AssetInstantiator {
+    fn instantiate_msg(&self, _deps: DepsMut) -> StdResult<SubMsg> {
         Ok(SubMsg::reply_always(
             WasmMsg::Instantiate {
                 admin: self.admin.clone(),
@@ -172,17 +155,18 @@ impl Instantiate<AssetInfo> for Cw20AssetInstantiator {
         storage: &mut dyn Storage,
         api: &dyn Api,
         reply: &Reply,
-        item: Item<AssetInfo>,
+        item: Item<Cw20>,
     ) -> Result<Response, CwAssetError> {
         match reply.id {
             REPLY_SAVE_CW20_ADDRESS => {
                 let res = unwrap_reply(reply)?;
-                let asset = parse_contract_addr_from_instantiate_event(api, res)?;
+                let addr = parse_contract_addr_from_instantiate_event(api, res)?;
 
-                item.save(storage, &asset.clone().into())?;
+                item.save(storage, &Cw20(addr.clone()))?;
+
                 Ok(Response::new()
                     .add_attribute("action", "save_osmosis_denom")
-                    .add_attribute("addr", &asset))
+                    .add_attribute("addr", &addr))
             }
             _ => Err(CwAssetError::InvalidReplyId {}),
         }

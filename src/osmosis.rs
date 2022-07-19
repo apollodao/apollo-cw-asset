@@ -1,13 +1,11 @@
-use crate::{
-    unwrap_reply, Asset, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transfer,
-};
+use crate::{unwrap_reply, AssetInfo, Burn, CwAssetError, Instantiate, IsNative, Mint, Transfer};
 use apollo_proto_rust::cosmos::base::v1beta1::Coin as CoinMsg;
 use apollo_proto_rust::osmosis::tokenfactory::v1beta1::{MsgBurn, MsgCreateDenom, MsgMint};
 use apollo_proto_rust::utils::encode;
 use apollo_proto_rust::OsmosisTypeURLs;
 use cosmwasm_std::{
-    Api, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage,
-    SubMsg, SubMsgResponse,
+    Api, BankMsg, Coin, CosmosMsg, DepsMut, Reply, Response, StdError, StdResult, Storage, SubMsg,
+    SubMsgResponse, Uint128,
 };
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
@@ -16,25 +14,19 @@ use std::convert::TryFrom;
 use std::fmt::Display;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct OsmosisCoin(pub Coin);
+pub struct OsmosisDenom(pub String);
 
-impl Display for OsmosisCoin {
+impl Display for OsmosisDenom {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl From<OsmosisCoin> for Asset {
-    fn from(asset: OsmosisCoin) -> Asset {
-        Asset::from(asset.0)
-    }
-}
-
-impl TryFrom<Asset> for OsmosisCoin {
+impl TryFrom<AssetInfo> for OsmosisDenom {
     type Error = StdError;
 
-    fn try_from(asset: Asset) -> StdResult<Self> {
-        match asset.info {
+    fn try_from(asset_info: AssetInfo) -> StdResult<Self> {
+        match asset_info {
             AssetInfo::Cw20(_) => {
                 Err(StdError::generic_err("Cannot convert Cw20 asset to OsmosisDenom."))
             }
@@ -43,41 +35,33 @@ impl TryFrom<Asset> for OsmosisCoin {
                 if parts.len() != 3 || parts[0] != "factory" {
                     return Err(StdError::generic_err("Invalid denom for OsmosisDenom."));
                 }
-                Ok(OsmosisCoin(Coin::new(asset.amount.into(), denom)))
+                Ok(OsmosisDenom(denom))
             }
         }
     }
 }
 
-impl TryFrom<&Asset> for OsmosisCoin {
+impl TryFrom<&AssetInfo> for OsmosisDenom {
     type Error = StdError;
 
-    fn try_from(asset: &Asset) -> StdResult<Self> {
-        Self::try_from(asset.clone())
+    fn try_from(asset_info: &AssetInfo) -> StdResult<Self> {
+        Self::try_from(asset_info.clone())
     }
 }
 
-impl TryFrom<OsmosisCoin> for Coin {
-    type Error = StdError;
-
-    fn try_from(asset: OsmosisCoin) -> StdResult<Self> {
-        Ok(asset.0)
-    }
-}
-
-impl IsNative for OsmosisCoin {
+impl IsNative for OsmosisDenom {
     fn is_native() -> bool {
         true
     }
 }
 
-impl Transfer for OsmosisCoin {
-    fn transfer<A: Into<String>>(&self, to: A) -> StdResult<Response> {
+impl Transfer for OsmosisDenom {
+    fn transfer<A: Into<String>>(&self, to: A, amount: Uint128) -> StdResult<Response> {
         Ok(Response::new().add_message(CosmosMsg::Bank(BankMsg::Send {
             to_address: to.into(),
             amount: vec![Coin {
-                denom: self.0.denom.to_string(),
-                amount: self.0.amount,
+                denom: self.0.clone(),
+                amount,
             }],
         })))
     }
@@ -86,24 +70,26 @@ impl Transfer for OsmosisCoin {
         &self,
         _from: A,
         _to: B,
+        _amount: Uint128,
     ) -> StdResult<Response> {
         unimplemented!()
     }
 }
 
-impl Mint for OsmosisCoin {
+impl Mint for OsmosisDenom {
     fn mint<A: Into<String>, B: Into<String>>(
         &self,
         sender: A,
         recipient: B,
+        amount: Uint128,
     ) -> StdResult<Response> {
         Ok(Response::new().add_messages(vec![
             CosmosMsg::Stargate {
                 type_url: OsmosisTypeURLs::Mint.to_string(),
                 value: encode(MsgMint {
                     amount: Some(CoinMsg {
-                        denom: self.0.denom.to_string(),
-                        amount: self.0.amount.to_string(),
+                        denom: self.0.clone(),
+                        amount: amount.to_string(),
                     }),
                     sender: sender.into(),
                 }),
@@ -111,22 +97,22 @@ impl Mint for OsmosisCoin {
             CosmosMsg::Bank(BankMsg::Send {
                 to_address: recipient.into(),
                 amount: vec![Coin {
-                    denom: self.0.denom.to_string(),
-                    amount: self.0.amount,
+                    denom: self.0.clone(),
+                    amount,
                 }],
             }),
         ]))
     }
 }
 
-impl Burn for OsmosisCoin {
-    fn burn<A: Into<String>>(&self, sender: A) -> StdResult<Response> {
+impl Burn for OsmosisDenom {
+    fn burn<A: Into<String>>(&self, sender: A, amount: Uint128) -> StdResult<Response> {
         Ok(Response::new().add_message(CosmosMsg::Stargate {
             type_url: OsmosisTypeURLs::Burn.to_string(),
             value: encode(MsgBurn {
                 amount: Some(CoinMsg {
-                    denom: self.0.denom.to_string(),
-                    amount: self.0.amount.to_string(),
+                    denom: self.0.clone(),
+                    amount: amount.to_string(),
                 }),
                 sender: sender.into(),
             }),
@@ -134,16 +120,19 @@ impl Burn for OsmosisCoin {
     }
 }
 
-pub type OsmosisDenomInstantiator = String;
+pub struct OsmosisDenomInstantiator {
+    denom: String,
+    sender: String,
+}
 
-impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
-    fn instantiate_msg(&self, _deps: DepsMut, env: Env) -> StdResult<SubMsg> {
+impl Instantiate<OsmosisDenom> for OsmosisDenomInstantiator {
+    fn instantiate_msg(&self, _deps: DepsMut) -> StdResult<SubMsg> {
         Ok(SubMsg::reply_always(
             CosmosMsg::Stargate {
                 type_url: OsmosisTypeURLs::CreateDenom.to_string(),
                 value: encode(MsgCreateDenom {
-                    sender: env.contract.address.to_string(),
-                    subdenom: self.clone(),
+                    sender: self.sender.clone(),
+                    subdenom: self.denom.clone(),
                 }),
             },
             REPLY_SAVE_OSMOSIS_DENOM,
@@ -154,19 +143,19 @@ impl Instantiate<AssetInfo> for OsmosisDenomInstantiator {
         storage: &mut dyn Storage,
         _api: &dyn Api,
         reply: &Reply,
-        item: Item<AssetInfo>,
+        item: Item<OsmosisDenom>,
     ) -> Result<Response, CwAssetError> {
         match reply.id {
             REPLY_SAVE_OSMOSIS_DENOM => {
                 let res = unwrap_reply(reply)?;
-                let osmosis_denom = parse_osmosis_denom_from_instantiate_event(res)
+                let denom = parse_osmosis_denom_from_instantiate_event(res)
                     .map_err(|e| StdError::generic_err(format!("{}", e)))?;
 
-                item.save(storage, &AssetInfo::Native(osmosis_denom.clone()))?;
+                item.save(storage, &OsmosisDenom(denom.clone()))?;
 
                 Ok(Response::new()
                     .add_attribute("action", "save_osmosis_denom")
-                    .add_attribute("denom", &osmosis_denom))
+                    .add_attribute("denom", &denom))
             }
             _ => Err(CwAssetError::InvalidReplyId {}),
         }

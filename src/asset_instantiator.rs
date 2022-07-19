@@ -29,7 +29,7 @@ pub enum TokenInitInfo {
 pub const TOKEN_ITEM_KEY: Item<String> = Item::new("token_item_key");
 
 pub trait Instantiate<A: Serialize + DeserializeOwned>: Sized {
-    fn instantiate_msg(&self, deps: DepsMut, env: Env) -> StdResult<SubMsg>;
+    fn instantiate_msg(&self, deps: DepsMut) -> StdResult<SubMsg>;
 
     fn save_asset(
         storage: &mut dyn Storage,

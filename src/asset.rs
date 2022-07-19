@@ -321,15 +321,16 @@ impl Asset {
 }
 
 pub trait Send {
-    fn send<A: Into<String>>(&self, to: A, msg: Binary) -> StdResult<Response>;
+    fn send<A: Into<String>>(&self, to: A, amount: Uint128, msg: Binary) -> StdResult<Response>;
 }
 
 pub trait Transfer {
-    fn transfer<A: Into<String>>(&self, to: A) -> StdResult<Response>;
+    fn transfer<A: Into<String>>(&self, to: A, amount: Uint128) -> StdResult<Response>;
     fn transfer_from<A: Into<String>, B: Into<String>>(
         &self,
         from: A,
         to: B,
+        amount: Uint128,
     ) -> StdResult<Response>;
 }
 
@@ -338,6 +339,7 @@ pub trait Mint {
         &self,
         sender: A,
         recipient: B,
+        amount: Uint128,
     ) -> StdResult<Response>;
 
     fn is_mintable() -> bool {
@@ -346,7 +348,7 @@ pub trait Mint {
 }
 
 pub trait Burn {
-    fn burn<A: Into<String>>(&self, sender: A) -> StdResult<Response>;
+    fn burn<A: Into<String>>(&self, sender: A, amount: Uint128) -> StdResult<Response>;
 
     fn is_burnable() -> bool {
         true
