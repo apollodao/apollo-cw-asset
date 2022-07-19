@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    to_binary, Addr, Api, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult, Storage,
-    SubMsg, SubMsgResponse, Uint128, WasmMsg,
+    to_binary, Addr, Api, Coin, CosmosMsg, DepsMut, Env, Reply, Response, StdError, StdResult,
+    Storage, SubMsg, SubMsgResponse, Uint128, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
@@ -47,6 +47,14 @@ impl TryFrom<Asset> for Cw20Asset {
                 Err(StdError::generic_err("Cannot convert native asset to Cw20."))
             }
         }
+    }
+}
+
+impl TryFrom<Cw20Asset> for Coin {
+    type Error = StdError;
+
+    fn try_from(asset: Cw20Asset) -> StdResult<Self> {
+        Err(StdError::generic_err("Cannot convert Cw20 asset to Coin."))
     }
 }
 
