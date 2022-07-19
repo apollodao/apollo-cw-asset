@@ -130,14 +130,14 @@ impl Burn for Cw20 {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Cw20AssetInstantiator {
+pub struct Cw20Instantiator {
     pub label: String,
     pub admin: Option<String>,
     pub code_id: u64,
     pub cw20_init_msg: Cw20InstantiateMsg,
 }
 
-impl Instantiate<Cw20> for Cw20AssetInstantiator {
+impl Instantiate<Cw20> for Cw20Instantiator {
     fn instantiate_msg(&self, _deps: DepsMut) -> StdResult<SubMsg> {
         Ok(SubMsg::reply_always(
             WasmMsg::Instantiate {
