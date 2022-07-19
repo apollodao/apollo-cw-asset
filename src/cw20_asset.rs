@@ -69,23 +69,23 @@ fn parse_contract_addr_from_instantiate_event(
 }
 
 impl Transfer for Cw20Asset {
-    fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg> {
-        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+    fn transfer<A: Into<String>>(&self, to: A) -> StdResult<Response> {
+        Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: self.address.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Transfer {
                 recipient: to.into(),
                 amount: self.amount,
             })?,
             funds: vec![],
-        }))
+        })))
     }
 
-    fn transfer_from_msg<A: Into<String>, B: Into<String>>(
+    fn transfer_from<A: Into<String>, B: Into<String>>(
         &self,
         from: A,
         to: B,
-    ) -> StdResult<CosmosMsg> {
-        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+    ) -> StdResult<Response> {
+        Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: self.address.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::TransferFrom {
                 owner: from.into(),
@@ -93,7 +93,7 @@ impl Transfer for Cw20Asset {
                 amount: self.amount,
             })?,
             funds: vec![],
-        }))
+        })))
     }
 }
 
@@ -104,31 +104,31 @@ impl IsNative for Cw20Asset {
 }
 
 impl Mint for Cw20Asset {
-    fn mint_msgs<A: Into<String>, B: Into<String>>(
+    fn mint<A: Into<String>, B: Into<String>>(
         &self,
         _sender: A,
         recipient: B,
-    ) -> StdResult<Vec<CosmosMsg>> {
-        Ok(vec![CosmosMsg::Wasm(WasmMsg::Execute {
+    ) -> StdResult<Response> {
+        Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: self.address.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Mint {
                 recipient: recipient.into(),
                 amount: self.amount,
             })?,
             funds: vec![],
-        })])
+        })))
     }
 }
 
 impl Burn for Cw20Asset {
-    fn burn_msg<A: Into<String>>(&self, _sender: A) -> StdResult<CosmosMsg> {
-        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+    fn burn<A: Into<String>>(&self, _sender: A) -> StdResult<Response> {
+        Ok(Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: self.address.to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Burn {
                 amount: self.amount,
             })?,
             funds: vec![],
-        }))
+        })))
     }
 }
 

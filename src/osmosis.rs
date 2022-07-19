@@ -57,32 +57,32 @@ impl IsNative for OsmosisCoin {
 }
 
 impl Transfer for OsmosisCoin {
-    fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg> {
-        Ok(CosmosMsg::Bank(BankMsg::Send {
+    fn transfer<A: Into<String>>(&self, to: A) -> StdResult<Response> {
+        Ok(Response::new().add_message(CosmosMsg::Bank(BankMsg::Send {
             to_address: to.into(),
             amount: vec![Coin {
                 denom: self.0.denom.to_string(),
                 amount: self.0.amount,
             }],
-        }))
+        })))
     }
 
-    fn transfer_from_msg<A: Into<String>, B: Into<String>>(
+    fn transfer_from<A: Into<String>, B: Into<String>>(
         &self,
         _from: A,
         _to: B,
-    ) -> StdResult<CosmosMsg> {
+    ) -> StdResult<Response> {
         unimplemented!()
     }
 }
 
 impl Mint for OsmosisCoin {
-    fn mint_msgs<A: Into<String>, B: Into<String>>(
+    fn mint<A: Into<String>, B: Into<String>>(
         &self,
         sender: A,
         recipient: B,
-    ) -> StdResult<Vec<CosmosMsg>> {
-        Ok(vec![
+    ) -> StdResult<Response> {
+        Ok(Response::new().add_messages(vec![
             CosmosMsg::Stargate {
                 type_url: OsmosisTypeURLs::Mint.to_string(),
                 value: encode(MsgMint {
@@ -93,14 +93,20 @@ impl Mint for OsmosisCoin {
                     sender: sender.into(),
                 }),
             },
-            self.transfer_msg(recipient)?,
-        ])
+            CosmosMsg::Bank(BankMsg::Send {
+                to_address: recipient.into(),
+                amount: vec![Coin {
+                    denom: self.0.denom.to_string(),
+                    amount: self.0.amount,
+                }],
+            }),
+        ]))
     }
 }
 
 impl Burn for OsmosisCoin {
-    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg> {
-        Ok(CosmosMsg::Stargate {
+    fn burn<A: Into<String>>(&self, sender: A) -> StdResult<Response> {
+        Ok(Response::new().add_message(CosmosMsg::Stargate {
             type_url: OsmosisTypeURLs::Burn.to_string(),
             value: encode(MsgBurn {
                 amount: Some(CoinMsg {
@@ -109,7 +115,7 @@ impl Burn for OsmosisCoin {
                 }),
                 sender: sender.into(),
             }),
-        })
+        }))
     }
 }
 

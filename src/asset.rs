@@ -1,6 +1,7 @@
 use super::asset_info::{AssetInfo, AssetInfoBase, AssetInfoUnchecked};
 use cosmwasm_std::{
-    to_binary, Addr, Api, BankMsg, Binary, Coin, CosmosMsg, StdError, StdResult, Uint128, WasmMsg,
+    to_binary, Addr, Api, BankMsg, Binary, Coin, CosmosMsg, Response, StdError, StdResult, Uint128,
+    WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
 use schemars::JsonSchema;
@@ -320,24 +321,24 @@ impl Asset {
 }
 
 pub trait Send {
-    fn send_msg<A: Into<String>>(&self, to: A, msg: Binary) -> StdResult<CosmosMsg>;
+    fn send<A: Into<String>>(&self, to: A, msg: Binary) -> StdResult<Response>;
 }
 
 pub trait Transfer {
-    fn transfer_msg<A: Into<String>>(&self, to: A) -> StdResult<CosmosMsg>;
-    fn transfer_from_msg<A: Into<String>, B: Into<String>>(
+    fn transfer<A: Into<String>>(&self, to: A) -> StdResult<Response>;
+    fn transfer_from<A: Into<String>, B: Into<String>>(
         &self,
         from: A,
         to: B,
-    ) -> StdResult<CosmosMsg>;
+    ) -> StdResult<Response>;
 }
 
 pub trait Mint {
-    fn mint_msgs<A: Into<String>, B: Into<String>>(
+    fn mint<A: Into<String>, B: Into<String>>(
         &self,
         sender: A,
         recipient: B,
-    ) -> StdResult<Vec<CosmosMsg>>;
+    ) -> StdResult<Response>;
 
     fn is_mintable() -> bool {
         true
@@ -345,7 +346,7 @@ pub trait Mint {
 }
 
 pub trait Burn {
-    fn burn_msg<A: Into<String>>(&self, sender: A) -> StdResult<CosmosMsg>;
+    fn burn<A: Into<String>>(&self, sender: A) -> StdResult<Response>;
 
     fn is_burnable() -> bool {
         true
