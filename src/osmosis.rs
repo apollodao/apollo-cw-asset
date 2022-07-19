@@ -13,9 +13,16 @@ use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
+use std::fmt::Display;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct OsmosisCoin(pub Coin);
+
+impl Display for OsmosisCoin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl From<OsmosisCoin> for Asset {
     fn from(asset: OsmosisCoin) -> Asset {
