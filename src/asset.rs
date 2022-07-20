@@ -5,7 +5,7 @@ use cosmwasm_std::{
 };
 use cw20::Cw20ExecuteMsg;
 use schemars::JsonSchema;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
 use std::str::FromStr;

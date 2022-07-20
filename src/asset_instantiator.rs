@@ -1,6 +1,6 @@
 use crate::CwAssetError;
 use cosmwasm_std::{
-    Api, DepsMut, Env, Reply, Response, StdError, StdResult, Storage, SubMsg, SubMsgResponse,
+    Api, DepsMut, Reply, Response, StdError, StdResult, Storage, SubMsg, SubMsgResponse,
 };
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 use cw_storage_plus::Item;

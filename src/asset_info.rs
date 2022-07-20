@@ -193,6 +193,19 @@ impl AssetInfo {
             info: self.clone(),
         }
     }
+
+    /// ## Description
+    /// If caller object is a native token of type ['AssetInfo`] then his `denom` field convert to a byte string.
+    ///
+    /// If caller object is a token of type ['AssetInfo`] then his `contract_addr` field convert to a byte string.
+    /// ## Params
+    /// * **self** is the type of the caller object.
+    pub fn as_bytes(&self) -> &[u8] {
+        match self {
+            AssetInfoBase::Cw20(contract_addr) => contract_addr.as_bytes(),
+            AssetInfoBase::Native(denom) => denom.as_bytes(),
+        }
+    }
 }
 
 //--------------------------------------------------------------------------------------------------

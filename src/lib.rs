@@ -90,6 +90,7 @@ pub mod cw20_asset;
 mod error;
 mod key;
 pub mod osmosis;
+mod pair;
 
 pub use asset::*;
 pub use asset_info::*;
@@ -97,6 +98,7 @@ pub use asset_instantiator::*;
 pub use asset_list::*;
 pub use error::*;
 pub use key::*;
+pub use pair::*;
 
 #[cfg(test)]
 mod testing;
