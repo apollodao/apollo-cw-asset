@@ -1,7 +1,7 @@
 use crate::Asset;
 use cosmwasm_std::{
-    to_binary, Addr, Api, BalanceResponse, BankQuery, CustomQuery, QuerierWrapper, QueryRequest,
-    StdError, StdResult, Uint128, WasmQuery,
+    to_binary, Addr, Api, BalanceResponse, BankQuery, Coin, CustomQuery, QuerierWrapper,
+    QueryRequest, StdError, StdResult, Uint128, WasmQuery,
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
 use schemars::JsonSchema;
@@ -145,6 +145,12 @@ impl fmt::Display for AssetInfo {
             AssetInfo::Cw20(contract_addr) => write!(f, "cw20:{}", contract_addr),
             AssetInfo::Native(denom) => write!(f, "native:{}", denom),
         }
+    }
+}
+
+impl From<Coin> for AssetInfo {
+    fn from(c: Coin) -> Self {
+        AssetInfo::Native(c.denom)
     }
 }
 
