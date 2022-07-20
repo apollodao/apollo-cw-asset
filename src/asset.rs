@@ -318,6 +318,17 @@ impl Asset {
             }
         }
     }
+
+    pub fn empty() -> Self {
+        Asset {
+            info: AssetInfo::empty(),
+            amount: Uint128::zero(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.info.is_empty() && self.amount.is_zero()
+    }
 }
 
 pub trait Send {

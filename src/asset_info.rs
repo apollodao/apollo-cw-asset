@@ -1,7 +1,7 @@
 use crate::Asset;
 use cosmwasm_std::{
-    to_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdError,
-    StdResult, Uint128, WasmQuery,
+    to_binary, Addr, Api, BalanceResponse, BankQuery, CustomQuery, QuerierWrapper, QueryRequest,
+    StdError, StdResult, Uint128, WasmQuery,
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
 use schemars::JsonSchema;
@@ -160,9 +160,9 @@ impl AssetInfo {
     ///     info.query_balance(&deps.querier, "account_addr")
     /// }
     /// ```
-    pub fn query_balance<T: Into<String>>(
+    pub fn query_balance<T: Into<String>, Q: CustomQuery>(
         &self,
-        querier: &QuerierWrapper,
+        querier: &QuerierWrapper<Q>,
         address: T,
     ) -> StdResult<Uint128> {
         match self {
@@ -204,6 +204,17 @@ impl AssetInfo {
         match self {
             AssetInfoBase::Cw20(contract_addr) => contract_addr.as_bytes(),
             AssetInfoBase::Native(denom) => denom.as_bytes(),
+        }
+    }
+
+    pub fn empty() -> Self {
+        AssetInfo::native("")
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match self {
+            AssetInfo::Cw20(contract_addr) => contract_addr.as_str().is_empty(),
+            AssetInfo::Native(denom) => denom.is_empty(),
         }
     }
 }
