@@ -15,7 +15,7 @@ use std::str::FromStr;
 ///
 /// - CW20 tokens. To create an **asset info** instance of this type, provide the contract address.
 /// - Native SDK coins. To create an **asset info** instance of this type, provide the denomination.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AssetInfoBase<T> {
     Cw20(T),
