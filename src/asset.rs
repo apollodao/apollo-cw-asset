@@ -1,4 +1,5 @@
 use super::asset_info::{AssetInfo, AssetInfoBase, AssetInfoUnchecked};
+use apollo_proto_rust::cosmos::base::v1beta1::Coin as ProtoCoin;
 use cosmwasm_std::{
     to_binary, Addr, Api, BankMsg, Binary, Coin, CosmosMsg, Response, StdError, StdResult, Uint128,
     WasmMsg,
@@ -160,6 +161,15 @@ impl From<Coin> for Asset {
     }
 }
 
+impl From<ProtoCoin> for Asset {
+    fn from(proto_coin: ProtoCoin) -> Self {
+        Self {
+            info: AssetInfo::Native(proto_coin.denom),
+            amount: Uint128::from_str(&proto_coin.amount).unwrap(),
+        }
+    }
+}
+
 impl From<&Coin> for Asset {
     fn from(coin: &Coin) -> Self {
         coin.clone().into()
@@ -176,6 +186,22 @@ impl TryFrom<Asset> for Coin {
             }),
             AssetInfo::Cw20(_) => Err(StdError::generic_err(format!(
                 "cannot cast asset {} into cosmwasm_std::Coin",
+                asset
+            ))),
+        }
+    }
+}
+
+impl TryFrom<Asset> for ProtoCoin {
+    type Error = StdError;
+    fn try_from(asset: Asset) -> Result<Self, Self::Error> {
+        match &asset.info {
+            AssetInfo::Native(denom) => Ok(ProtoCoin {
+                denom: denom.clone(),
+                amount: asset.amount.to_string(),
+            }),
+            AssetInfo::Cw20(_) => Err(StdError::generic_err(format!(
+                "cannot cast asset {} into apollo_proto_rust::Coin",
                 asset
             ))),
         }
