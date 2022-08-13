@@ -318,6 +318,44 @@ impl Asset {
             }
         }
     }
+
+    /// Generate a message that burns the asset
+    ///
+    ///
+    /// ```rust
+    /// use cosmwasm_std::{Addr, Response, StdResult};
+    /// use cw_asset::Asset;
+    ///
+    /// fn draw_asset(asset: &Asset, user_addr: &Addr, contract_addr: &Addr) -> StdResult<Response> {
+    ///     let msg = asset.transfer_from_msg(user_addr, contract_addr)?;
+    ///
+    ///     Ok(Response::new()
+    ///         .add_message(msg)
+    ///         .add_attribute("asset_drawn", asset.to_string()))
+    /// }
+    /// ```
+    pub fn burn_msg<A: Into<String>, B: Into<String>>(
+        &self,
+        from: A,
+        _to: B,
+    ) -> StdResult<CosmosMsg> {
+        match &self.info {
+            AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: contract_addr.into(),
+                msg: to_binary(&Cw20ExecuteMsg::BurnFrom {
+                    owner: from.into(),
+                    amount: self.amount,
+                })?,
+                funds: vec![],
+            })),
+            AssetInfo::Native(denom) => Ok(CosmosMsg::Bank(BankMsg::Burn {
+                amount: vec![Coin {
+                    denom: denom.clone(),
+                    amount: self.amount,
+                }],
+            })),
+        }
+    }
 }
 
 pub trait Send {
