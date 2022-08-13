@@ -326,19 +326,15 @@ impl Asset {
     /// use cosmwasm_std::{Addr, Response, StdResult};
     /// use cw_asset::Asset;
     ///
-    /// fn draw_asset(asset: &Asset, user_addr: &Addr, contract_addr: &Addr) -> StdResult<Response> {
-    ///     let msg = asset.transfer_from_msg(user_addr, contract_addr)?;
+    /// fn burn_asset(asset: &Asset, contract_addr: &Addr) -> StdResult<Response> {
+    ///     let msg = asset.burn_msg(contract_addr)?;
     ///
     ///     Ok(Response::new()
     ///         .add_message(msg)
-    ///         .add_attribute("asset_drawn", asset.to_string()))
+    ///         .add_attribute("asset_burned", asset.to_string()))
     /// }
     /// ```
-    pub fn burn_msg<A: Into<String>, B: Into<String>>(
-        &self,
-        from: A,
-        _to: B,
-    ) -> StdResult<CosmosMsg> {
+    pub fn burn_msg<A: Into<String>, B: Into<String>>(&self, from: A) -> StdResult<CosmosMsg> {
         match &self.info {
             AssetInfo::Cw20(contract_addr) => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: contract_addr.into(),
