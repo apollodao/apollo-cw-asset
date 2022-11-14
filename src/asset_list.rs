@@ -87,7 +87,7 @@ impl From<Vec<astroport_core::asset::Asset>> for AssetList {
 }
 
 #[cfg(feature = "astroport")]
-impl TryFrom<AssetList> for [astroport_core::asset::Asset; 2] {
+impl std::convert::TryFrom<AssetList> for [astroport_core::asset::Asset; 2] {
     type Error = StdError;
 
     fn try_from(value: AssetList) -> Result<[astroport_core::asset::Asset; 2], Self::Error> {
