@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::fmt;
 
 use cosmwasm_std::{
@@ -12,9 +13,6 @@ use serde::{Deserialize, Serialize};
 use {cosmwasm_std::QuerierWrapper, terra_cosmwasm::TerraQuerier};
 
 use super::asset_info::{AssetInfo, AssetInfoBase};
-
-#[cfg(feature = "terra")]
-static DECIMAL_FRACTION: Uint128 = Uint128::new(1_000_000_000_000_000_000u128);
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct AssetBase<T> {
@@ -62,6 +60,48 @@ impl From<Coin> for Asset {
 impl From<&Coin> for Asset {
     fn from(coin: &Coin) -> Self {
         coin.clone().into()
+    }
+}
+
+impl TryInto<Coin> for Asset {
+    type Error = StdError;
+
+    fn try_into(self) -> Result<Coin, Self::Error> {
+        match self.info {
+            AssetInfo::Native(denom) => Ok(Coin {
+                denom,
+                amount: self.amount,
+            }),
+            _ => Err(StdError::parse_err("Asset", "Cannot convert non-native asset to Coin")),
+        }
+    }
+}
+
+impl TryInto<Coin> for &Asset {
+    type Error = StdError;
+
+    fn try_into(self) -> Result<Coin, Self::Error> {
+        self.clone().try_into()
+    }
+}
+
+#[cfg(feature = "astroport")]
+impl From<&astroport_core::asset::Asset> for Asset {
+    fn from(astro_asset: &astroport_core::asset::Asset) -> Self {
+        Self {
+            info: astro_asset.info.to_owned().into(),
+            amount: astro_asset.amount,
+        }
+    }
+}
+
+#[cfg(feature = "astroport")]
+impl From<Asset> for astroport_core::asset::Asset {
+    fn from(astro_asset: Asset) -> Self {
+        Self {
+            info: astro_asset.info.into(),
+            amount: astro_asset.amount,
+        }
     }
 }
 
@@ -180,122 +220,6 @@ impl Asset {
                 Err(StdError::generic_err("native coins do not have `transfer_from` method"))
             }
         }
-    }
-}
-
-#[cfg(feature = "terra")]
-impl Asset {
-    /// Update the asset amount to include the necessary tax if the the asset is to be transferred
-    ///
-    /// **Usage:**
-    /// The following code calculates to total cost for sending 100 UST. For example, if the tax
-    /// that will incur from transferring 100 UST is 0.5 UST, the following code will return an
-    /// `Asset` instance representing 100.5 UST.
-    ///
-    /// ```rust
-    /// let asset = Asset::native("uusd", 100000000);
-    /// asset.add_tax(&deps.querier)?;
-    /// ```
-    pub fn add_tax(&mut self, querier: &QuerierWrapper) -> StdResult<&mut Self> {
-        let tax = match &self.info {
-            AssetInfo::Cw20(_) => Uint128::zero(),
-            AssetInfo::Native(denom) => {
-                if denom == "luna" {
-                    Uint128::zero()
-                } else {
-                    let terra_querier = TerraQuerier::new(querier);
-                    let tax_rate = terra_querier.query_tax_rate()?.rate;
-                    let tax_cap = terra_querier.query_tax_cap(denom.clone())?.cap;
-
-                    std::cmp::min(self.amount * tax_rate, tax_cap)
-                }
-            }
-        };
-        self.amount = self.amount.checked_add(tax)?;
-        Ok(self)
-    }
-
-    /// Update the asset amount to exclude the necessary tax if the asset is to be transferred
-    ///
-    /// **Usage:**
-    /// The following code calculates the deliverable amount if 100 UST is to be transferred. Due to
-    /// tax, the deliverable amount will be smaller than the total amount.
-    ///
-    /// ```rust
-    /// let asset = Asset::native("uusd", 100000000);
-    /// asset.deduct_tax(&deps.querier)?;
-    /// ```
-    pub fn deduct_tax(&mut self, querier: &QuerierWrapper) -> StdResult<&mut Self> {
-        let tax = match &self.info {
-            AssetInfo::Cw20(_) => Uint128::zero(),
-            AssetInfo::Native(denom) => {
-                if denom == "luna" {
-                    Uint128::zero()
-                } else {
-                    let terra_querier = TerraQuerier::new(querier);
-                    let tax_rate = terra_querier.query_tax_rate()?.rate;
-                    let tax_cap = terra_querier.query_tax_cap(denom.clone())?.cap;
-
-                    std::cmp::min(
-                        self.amount.checked_sub(self.amount.multiply_ratio(
-                            DECIMAL_FRACTION,
-                            DECIMAL_FRACTION * tax_rate + DECIMAL_FRACTION,
-                        ))?,
-                        tax_cap,
-                    )
-                }
-            }
-        };
-        self.amount = self.amount.checked_sub(tax)?;
-        Ok(self)
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl From<Asset> for astroport::asset::Asset {
-    fn from(asset: Asset) -> Self {
-        Self {
-            info: asset.info.into(),
-            amount: asset.amount,
-        }
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl From<&Asset> for astroport::asset::Asset {
-    fn from(asset: &Asset) -> Self {
-        asset.clone().into()
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl From<astroport::asset::Asset> for Asset {
-    fn from(legacy_asset: astroport::asset::Asset) -> Self {
-        Self {
-            info: legacy_asset.info.into(),
-            amount: legacy_asset.amount,
-        }
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl From<&astroport::asset::Asset> for Asset {
-    fn from(legacy_asset: &astroport::asset::Asset) -> Self {
-        legacy_asset.clone().into()
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl std::cmp::PartialEq<Asset> for astroport::asset::Asset {
-    fn eq(&self, other: &Asset) -> bool {
-        self.info == other.info && self.amount == other.amount
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl std::cmp::PartialEq<astroport::asset::Asset> for Asset {
-    fn eq(&self, other: &astroport::asset::Asset) -> bool {
-        other == self
     }
 }
 
@@ -438,114 +362,5 @@ mod tests {
             err,
             Err(StdError::generic_err("native coins do not have `transfer_from` method"))
         );
-    }
-}
-
-#[cfg(all(test, feature = "terra"))]
-mod tests_terra {
-    use super::*;
-    use crate::testing::mock_dependencies;
-    use cosmwasm_std::Decimal;
-
-    #[test]
-    fn querying_balance() {
-        let mut deps = mock_dependencies();
-        deps.querier.set_base_balances("alice", &[Coin::new(69420, "uusd")]);
-        deps.querier.set_cw20_balance("mock_token", "bob", 88888);
-
-        let coin = AssetInfo::native("uusd");
-        let balance = coin.query_balance(&deps.as_ref().querier, "alice").unwrap();
-        assert_eq!(balance, Uint128::new(69420));
-
-        let token = AssetInfo::cw20(Addr::unchecked("mock_token"));
-        let balance = token.query_balance(&deps.as_ref().querier, "bob").unwrap();
-        assert_eq!(balance, Uint128::new(88888));
-    }
-
-    #[test]
-    fn handling_taxes() {
-        let mut deps = mock_dependencies();
-        deps.querier.set_native_tax_rate(Decimal::from_ratio(1u128, 1000u128)); // 0.1%
-        deps.querier.set_native_tax_cap("uusd", 1000000);
-
-        // a relatively small amount that does not hit tax cap
-        let mut asset = Asset::native("uusd", 1234567u128);
-        asset.deduct_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1233333));
-
-        asset.add_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1234566));
-
-        // a bigger amount that hits tax cap
-        let mut asset = Asset::native("uusd", 2000000000u128);
-
-        asset.deduct_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1999000000));
-
-        asset.add_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(2000000000));
-
-        // CW20 tokens don't have the tax issue
-        let mut asset = Asset::cw20(Addr::unchecked("mock_token"), 1234567u128);
-
-        asset.deduct_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1234567));
-
-        asset.add_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1234567));
-    }
-}
-
-#[cfg(all(test, feature = "legacy"))]
-mod tests_legacy {
-    use super::*;
-
-    fn legacy_uusd() -> astroport::asset::AssetInfo {
-        astroport::asset::AssetInfo::NativeToken {
-            denom: String::from("uusd"),
-        }
-    }
-
-    fn legacy_uluna() -> astroport::asset::AssetInfo {
-        astroport::asset::AssetInfo::NativeToken {
-            denom: String::from("uluna"),
-        }
-    }
-
-    #[test]
-    fn casting_legacy() {
-        let legacy_asset = astroport::asset::Asset {
-            info: legacy_uusd(),
-            amount: Uint128::new(69420),
-        };
-
-        let asset = Asset::native("uusd", 69420u128);
-
-        assert_eq!(asset, Asset::from(&legacy_asset));
-        assert_eq!(asset, Asset::from(legacy_asset.clone()));
-        assert_eq!(legacy_asset, astroport::asset::Asset::from(&asset));
-        assert_eq!(legacy_asset, astroport::asset::Asset::from(asset));
-    }
-
-    #[test]
-    fn comparing() {
-        let legacy_asset_1 = astroport::asset::Asset {
-            info: legacy_uusd(),
-            amount: Uint128::new(69420),
-        };
-        let legacy_asset_2 = astroport::asset::Asset {
-            info: legacy_uusd(),
-            amount: Uint128::new(88888),
-        };
-        let legacy_asset_3 = astroport::asset::Asset {
-            info: legacy_uluna(),
-            amount: Uint128::new(69420),
-        };
-
-        let asset = Asset::native("uusd", 69420u128);
-
-        assert_eq!(legacy_asset_1 == asset, true);
-        assert_eq!(legacy_asset_2 == asset, false);
-        assert_eq!(legacy_asset_3 == asset, false);
     }
 }

@@ -5,9 +5,6 @@ use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, StdError, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "terra")]
-use cosmwasm_std::QuerierWrapper;
-
 use super::asset::{Asset, AssetBase};
 use super::asset_info::AssetInfo;
 
@@ -70,6 +67,38 @@ impl From<Vec<Coin>> for AssetList {
 impl From<&[Coin]> for AssetList {
     fn from(coins: &[Coin]) -> Self {
         coins.to_vec().into()
+    }
+}
+
+impl<'a> IntoIterator for &'a AssetList {
+    type Item = &'a Asset;
+    type IntoIter = std::slice::Iter<'a, Asset>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+#[cfg(feature = "astroport")]
+impl From<Vec<astroport_core::asset::Asset>> for AssetList {
+    fn from(astro_assets: Vec<astroport_core::asset::Asset>) -> Self {
+        Self(astro_assets.iter().map(|asset| asset.into()).collect())
+    }
+}
+
+#[cfg(feature = "astroport")]
+impl TryFrom<AssetList> for [astroport_core::asset::Asset; 2] {
+    type Error = StdError;
+
+    fn try_from(value: AssetList) -> Result<[astroport_core::asset::Asset; 2], Self::Error> {
+        if value.len() != 2 {
+            return Err(StdError::generic_err(format!(
+                "AssetList must contain exactly 2 assets, but it contains {}",
+                value.len()
+            )));
+        }
+        let astro_assets = value.to_vec();
+        Ok([astro_assets[0].to_owned().into(), astro_assets[1].to_owned().into()])
     }
 }
 
@@ -165,46 +194,6 @@ impl AssetList {
             .iter()
             .map(|asset| asset.transfer_msg(to.clone()))
             .collect::<StdResult<Vec<CosmosMsg>>>()
-    }
-}
-
-#[cfg(feature = "terra")]
-impl AssetList {
-    /// Execute `add_tax` to every asset in the list
-    pub fn add_tax(&mut self, querier: &QuerierWrapper) -> StdResult<&mut Self> {
-        for asset in &mut self.0 {
-            asset.add_tax(querier)?;
-        }
-        Ok(self)
-    }
-
-    /// Execute `deduct_tax` to every asset in the list
-    pub fn deduct_tax(&mut self, querier: &QuerierWrapper) -> StdResult<&mut Self> {
-        for asset in &mut self.0 {
-            asset.deduct_tax(querier)?;
-        }
-        Ok(self)
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl From<AssetList> for Vec<astroport::asset::Asset> {
-    fn from(list: AssetList) -> Self {
-        list.0.iter().map(|asset| asset.into()).collect()
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl From<&AssetList> for Vec<astroport::asset::Asset> {
-    fn from(list: &AssetList) -> Self {
-        list.clone().into()
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl AssetList {
-    pub fn from_legacy(legacy_list: &[astroport::asset::Asset]) -> Self {
-        Self(legacy_list.to_vec().iter().map(|asset| asset.into()).collect())
     }
 }
 
@@ -365,71 +354,5 @@ mod tests {
                 })
             ]
         );
-    }
-}
-
-#[cfg(all(test, feature = "terra"))]
-mod tests_terra {
-    use super::test_helpers::{mock_list, mock_token, uusd};
-    use super::*;
-    use crate::testing::mock_dependencies;
-    use cosmwasm_std::Decimal;
-
-    #[test]
-    fn handling_taxes() {
-        let mut deps = mock_dependencies();
-        deps.querier.set_native_tax_rate(Decimal::from_ratio(1u128, 1000u128)); // 0.1%
-        deps.querier.set_native_tax_cap("uusd", 1000000);
-
-        let mut list = mock_list();
-
-        list.deduct_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(
-            list,
-            AssetList::from(vec![
-                Asset::new(uusd(), 69350u128),
-                Asset::new(mock_token(), 88888u128)
-            ])
-        );
-
-        list.add_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(
-            list,
-            AssetList::from(vec![
-                Asset::new(uusd(), 69419u128),
-                Asset::new(mock_token(), 88888u128)
-            ])
-        );
-    }
-}
-
-#[cfg(all(test, feature = "legacy"))]
-mod tests_legacy {
-    use super::test_helpers::mock_list;
-    use super::*;
-    use cosmwasm_std::Uint128;
-
-    #[test]
-    fn casting_legacy() {
-        let legacy_list = vec![
-            astroport::asset::Asset {
-                info: astroport::asset::AssetInfo::NativeToken {
-                    denom: String::from("uusd"),
-                },
-                amount: Uint128::new(69420),
-            },
-            astroport::asset::Asset {
-                info: astroport::asset::AssetInfo::Token {
-                    contract_addr: Addr::unchecked("mock_token"),
-                },
-                amount: Uint128::new(88888),
-            },
-        ];
-
-        let list = mock_list();
-
-        assert_eq!(list, AssetList::from_legacy(&legacy_list));
-        assert_eq!(legacy_list, Vec::<astroport::asset::Asset>::from(&list));
-        assert_eq!(legacy_list, Vec::<astroport::asset::Asset>::from(list));
     }
 }
