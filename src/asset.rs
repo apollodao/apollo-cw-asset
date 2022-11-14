@@ -81,7 +81,9 @@ impl TryInto<Coin> for &Asset {
     type Error = StdError;
 
     fn try_into(self) -> Result<Coin, Self::Error> {
-        self.clone().try_into()
+        self.clone()
+            .try_into()
+            .map_err(|_| StdError::parse_err("Asset", "converting Asset to Coin"))
     }
 }
 
