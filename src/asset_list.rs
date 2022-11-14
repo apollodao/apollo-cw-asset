@@ -1,5 +1,3 @@
-use astroport_core::asset::Asset as AstroAsset;
-use std::convert::TryFrom;
 use std::fmt;
 
 use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, StdError, StdResult};
@@ -81,16 +79,18 @@ impl<'a> IntoIterator for &'a AssetList {
     }
 }
 
-impl From<Vec<AstroAsset>> for AssetList {
-    fn from(astro_assets: Vec<AstroAsset>) -> Self {
+#[cfg(feature = "astroport")]
+impl From<Vec<astroport_core::asset::Asset>> for AssetList {
+    fn from(astro_assets: Vec<astroport_core::asset::Asset>) -> Self {
         Self(astro_assets.iter().map(|asset| asset.into()).collect())
     }
 }
 
-impl TryFrom<AssetList> for [AstroAsset; 2] {
+#[cfg(feature = "astroport")]
+impl TryFrom<AssetList> for [astroport_core::asset::Asset; 2] {
     type Error = StdError;
 
-    fn try_from(value: AssetList) -> Result<[AstroAsset; 2], Self::Error> {
+    fn try_from(value: AssetList) -> Result<[astroport_core::asset::Asset; 2], Self::Error> {
         if value.len() != 2 {
             return Err(StdError::generic_err(format!(
                 "AssetList must contain exactly 2 assets, but it contains {}",

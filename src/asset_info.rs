@@ -1,4 +1,3 @@
-use astroport_core::asset::AssetInfo as AstroAssetInfo;
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -60,26 +59,28 @@ impl fmt::Display for AssetInfo {
     }
 }
 
-impl From<AstroAssetInfo> for AssetInfo {
-    fn from(astro_asset: AstroAssetInfo) -> Self {
+#[cfg(feature = "astroport")]
+impl From<astroport_core::asset::AssetInfo> for AssetInfo {
+    fn from(astro_asset: astroport_core::asset::AssetInfo) -> Self {
         match astro_asset {
-            AstroAssetInfo::Token {
+            astroport_core::asset::AssetInfo::Token {
                 contract_addr,
             } => Self::cw20(contract_addr),
-            AstroAssetInfo::NativeToken {
+            astroport_core::asset::AssetInfo::NativeToken {
                 denom,
             } => Self::native(denom),
         }
     }
 }
 
-impl From<AssetInfo> for AstroAssetInfo {
+#[cfg(feature = "astroport")]
+impl From<AssetInfo> for astroport_core::asset::AssetInfo {
     fn from(astro_asset: AssetInfo) -> Self {
         match astro_asset {
-            AssetInfo::Cw20(contract_addr) => AstroAssetInfo::Token {
+            AssetInfo::Cw20(contract_addr) => astroport_core::asset::AssetInfo::Token {
                 contract_addr,
             },
-            AssetInfo::Native(denom) => AstroAssetInfo::NativeToken {
+            AssetInfo::Native(denom) => astroport_core::asset::AssetInfo::NativeToken {
                 denom,
             },
         }
@@ -178,65 +179,5 @@ mod test {
         let unchecked: AssetInfoUnchecked = checked.clone().into();
 
         assert_eq!(unchecked.check(&api).unwrap(), checked);
-    }
-}
-
-#[cfg(all(test, feature = "legacy"))]
-mod tests_legacy {
-    use super::*;
-
-    #[test]
-    fn casting_legacy() {
-        let legacy_info = astroport::asset::AssetInfo::NativeToken {
-            denom: String::from("uusd"),
-        };
-
-        let info = AssetInfo::native("uusd");
-
-        assert_eq!(info, AssetInfo::from(&legacy_info));
-        assert_eq!(info, AssetInfo::from(legacy_info.clone()));
-        assert_eq!(legacy_info, astroport::asset::AssetInfo::from(&info));
-        assert_eq!(legacy_info, astroport::asset::AssetInfo::from(info));
-
-        let legacy_info = astroport::asset::AssetInfo::Token {
-            contract_addr: Addr::unchecked("mock_token"),
-        };
-
-        let info = AssetInfo::cw20(Addr::unchecked("mock_token"));
-
-        assert_eq!(info, AssetInfo::from(&legacy_info));
-        assert_eq!(info, AssetInfo::from(legacy_info.clone()));
-        assert_eq!(legacy_info, astroport::asset::AssetInfo::from(&info));
-        assert_eq!(legacy_info, astroport::asset::AssetInfo::from(info));
-    }
-
-    #[test]
-    fn comparing() {
-        let legacy_info_1 = astroport::asset::AssetInfo::NativeToken {
-            denom: String::from("uusd"),
-        };
-        let legacy_info_2 = astroport::asset::AssetInfo::NativeToken {
-            denom: String::from("uluna"),
-        };
-        let legacy_info_3 = astroport::asset::AssetInfo::Token {
-            contract_addr: Addr::unchecked("astro_token"),
-        };
-        let legacy_info_4 = astroport::asset::AssetInfo::Token {
-            contract_addr: Addr::unchecked("mars_token"),
-        };
-
-        let info_1 = AssetInfo::native("uusd");
-        let info_2 = AssetInfo::native("uluna");
-        let info_3 = AssetInfo::cw20(Addr::unchecked("astro_token"));
-        let info_4 = AssetInfo::cw20(Addr::unchecked("mars_token"));
-
-        assert_eq!(legacy_info_1 == info_1, true);
-        assert_eq!(legacy_info_2 == info_1, false);
-        assert_eq!(legacy_info_2 == info_2, true);
-        assert_eq!(legacy_info_3 == info_1, false);
-        assert_eq!(legacy_info_3 == info_3, true);
-        assert_eq!(legacy_info_4 == info_3, false);
-        assert_eq!(legacy_info_4 == info_4, true);
-        assert_eq!(legacy_info_1 == info_4, false);
     }
 }

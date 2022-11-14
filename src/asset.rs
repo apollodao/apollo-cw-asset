@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 use std::fmt;
 
-use astroport_core::asset::Asset as AstroAsset;
 use cosmwasm_std::{
     to_binary, Addr, Api, BankMsg, Binary, Coin, CosmosMsg, StdError, StdResult, Uint128, WasmMsg,
 };
@@ -86,8 +85,9 @@ impl TryInto<Coin> for &Asset {
     }
 }
 
-impl From<&AstroAsset> for Asset {
-    fn from(astro_asset: &AstroAsset) -> Self {
+#[cfg(feature = "astroport")]
+impl From<&astroport_core::asset::Asset> for Asset {
+    fn from(astro_asset: &astroport_core::asset::Asset) -> Self {
         Self {
             info: astro_asset.info.to_owned().into(),
             amount: astro_asset.amount,
@@ -95,7 +95,8 @@ impl From<&AstroAsset> for Asset {
     }
 }
 
-impl From<Asset> for AstroAsset {
+#[cfg(feature = "astroport")]
+impl From<Asset> for astroport_core::asset::Asset {
     fn from(astro_asset: Asset) -> Self {
         Self {
             info: astro_asset.info.into(),
@@ -361,114 +362,5 @@ mod tests {
             err,
             Err(StdError::generic_err("native coins do not have `transfer_from` method"))
         );
-    }
-}
-
-#[cfg(all(test, feature = "terra"))]
-mod tests_terra {
-    use super::*;
-    use crate::testing::mock_dependencies;
-    use cosmwasm_std::Decimal;
-
-    #[test]
-    fn querying_balance() {
-        let mut deps = mock_dependencies();
-        deps.querier.set_base_balances("alice", &[Coin::new(69420, "uusd")]);
-        deps.querier.set_cw20_balance("mock_token", "bob", 88888);
-
-        let coin = AssetInfo::native("uusd");
-        let balance = coin.query_balance(&deps.as_ref().querier, "alice").unwrap();
-        assert_eq!(balance, Uint128::new(69420));
-
-        let token = AssetInfo::cw20(Addr::unchecked("mock_token"));
-        let balance = token.query_balance(&deps.as_ref().querier, "bob").unwrap();
-        assert_eq!(balance, Uint128::new(88888));
-    }
-
-    #[test]
-    fn handling_taxes() {
-        let mut deps = mock_dependencies();
-        deps.querier.set_native_tax_rate(Decimal::from_ratio(1u128, 1000u128)); // 0.1%
-        deps.querier.set_native_tax_cap("uusd", 1000000);
-
-        // a relatively small amount that does not hit tax cap
-        let mut asset = Asset::native("uusd", 1234567u128);
-        asset.deduct_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1233333));
-
-        asset.add_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1234566));
-
-        // a bigger amount that hits tax cap
-        let mut asset = Asset::native("uusd", 2000000000u128);
-
-        asset.deduct_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1999000000));
-
-        asset.add_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(2000000000));
-
-        // CW20 tokens don't have the tax issue
-        let mut asset = Asset::cw20(Addr::unchecked("mock_token"), 1234567u128);
-
-        asset.deduct_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1234567));
-
-        asset.add_tax(&deps.as_ref().querier).unwrap();
-        assert_eq!(asset.amount, Uint128::new(1234567));
-    }
-}
-
-#[cfg(all(test, feature = "legacy"))]
-mod tests_legacy {
-    use super::*;
-
-    fn legacy_uusd() -> astroport::asset::AssetInfo {
-        astroport::asset::AssetInfo::NativeToken {
-            denom: String::from("uusd"),
-        }
-    }
-
-    fn legacy_uluna() -> astroport::asset::AssetInfo {
-        astroport::asset::AssetInfo::NativeToken {
-            denom: String::from("uluna"),
-        }
-    }
-
-    #[test]
-    fn casting_legacy() {
-        let legacy_asset = astroport::asset::Asset {
-            info: legacy_uusd(),
-            amount: Uint128::new(69420),
-        };
-
-        let asset = Asset::native("uusd", 69420u128);
-
-        assert_eq!(asset, Asset::from(&legacy_asset));
-        assert_eq!(asset, Asset::from(legacy_asset.clone()));
-        assert_eq!(legacy_asset, astroport::asset::Asset::from(&asset));
-        assert_eq!(legacy_asset, astroport::asset::Asset::from(asset));
-    }
-
-    #[test]
-    fn comparing() {
-        let legacy_asset_1 = astroport::asset::Asset {
-            info: legacy_uusd(),
-            amount: Uint128::new(69420),
-        };
-        let legacy_asset_2 = astroport::asset::Asset {
-            info: legacy_uusd(),
-            amount: Uint128::new(88888),
-        };
-        let legacy_asset_3 = astroport::asset::Asset {
-            info: legacy_uluna(),
-            amount: Uint128::new(69420),
-        };
-
-        let asset = Asset::native("uusd", 69420u128);
-
-        assert_eq!(legacy_asset_1 == asset, true);
-        assert_eq!(legacy_asset_2 == asset, false);
-        assert_eq!(legacy_asset_3 == asset, false);
     }
 }
