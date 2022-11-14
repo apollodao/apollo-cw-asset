@@ -5,9 +5,6 @@ use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, StdError, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "terra")]
-use cosmwasm_std::QuerierWrapper;
-
 use super::asset::{Asset, AssetBase};
 use super::asset_info::AssetInfo;
 
@@ -165,46 +162,6 @@ impl AssetList {
             .iter()
             .map(|asset| asset.transfer_msg(to.clone()))
             .collect::<StdResult<Vec<CosmosMsg>>>()
-    }
-}
-
-#[cfg(feature = "terra")]
-impl AssetList {
-    /// Execute `add_tax` to every asset in the list
-    pub fn add_tax(&mut self, querier: &QuerierWrapper) -> StdResult<&mut Self> {
-        for asset in &mut self.0 {
-            asset.add_tax(querier)?;
-        }
-        Ok(self)
-    }
-
-    /// Execute `deduct_tax` to every asset in the list
-    pub fn deduct_tax(&mut self, querier: &QuerierWrapper) -> StdResult<&mut Self> {
-        for asset in &mut self.0 {
-            asset.deduct_tax(querier)?;
-        }
-        Ok(self)
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl From<AssetList> for Vec<astroport::asset::Asset> {
-    fn from(list: AssetList) -> Self {
-        list.0.iter().map(|asset| asset.into()).collect()
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl From<&AssetList> for Vec<astroport::asset::Asset> {
-    fn from(list: &AssetList) -> Self {
-        list.clone().into()
-    }
-}
-
-#[cfg(feature = "legacy")]
-impl AssetList {
-    pub fn from_legacy(legacy_list: &[astroport::asset::Asset]) -> Self {
-        Self(legacy_list.to_vec().iter().map(|asset| asset.into()).collect())
     }
 }
 
