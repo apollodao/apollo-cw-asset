@@ -1,4 +1,6 @@
+use astroport_core::asset::AssetInfo as AstroAssetInfo;
 use std::fmt;
+use std::fmt::Formatter;
 
 use cosmwasm_std::{
     to_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdResult,
@@ -40,11 +42,46 @@ impl AssetInfoUnchecked {
     }
 }
 
+impl fmt::Display for AssetInfoUnchecked {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            AssetInfoUnchecked::Cw20(contract_addr) => write!(f, "{}", contract_addr),
+            AssetInfoUnchecked::Native(denom) => write!(f, "{}", denom),
+        }
+    }
+}
+
 impl fmt::Display for AssetInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             AssetInfo::Cw20(contract_addr) => write!(f, "{}", contract_addr),
             AssetInfo::Native(denom) => write!(f, "{}", denom),
+        }
+    }
+}
+
+impl From<AstroAssetInfo> for AssetInfo {
+    fn from(astro_asset: AstroAssetInfo) -> Self {
+        match astro_asset {
+            AstroAssetInfo::Token {
+                contract_addr,
+            } => Self::cw20(contract_addr),
+            AstroAssetInfo::NativeToken {
+                denom,
+            } => Self::native(denom),
+        }
+    }
+}
+
+impl From<AssetInfo> for AstroAssetInfo {
+    fn from(astro_asset: AssetInfo) -> Self {
+        match astro_asset {
+            AssetInfo::Cw20(contract_addr) => AstroAssetInfo::Token {
+                contract_addr,
+            },
+            AssetInfo::Native(denom) => AstroAssetInfo::NativeToken {
+                denom,
+            },
         }
     }
 }
@@ -58,6 +95,13 @@ impl AssetInfo {
     /// Create a new `AssetInfoBase` instance representing a native token of given denom
     pub fn native<A: Into<String>>(denom: A) -> Self {
         AssetInfo::Native(denom.into())
+    }
+
+    pub fn from_str(api: &dyn Api, s: &str) -> Self {
+        match api.addr_validate(s) {
+            Ok(contract_addr) => AssetInfo::cw20(contract_addr),
+            Err(_) => AssetInfo::native(s.to_string()),
+        }
     }
 
     /// Query an address' balance of the asset

@@ -11,7 +11,9 @@ repository = "https://github.com/larry0x/cw-asset"
 doctest = false # do not run doc tests
 
 [dependencies]
+astroport-core = { package = "astroport", rev = "126d43216111df786472fe2a845c1e2fadfe4a36", git = "https://github.com/astroport-fi/astroport-core.git" }
 cosmwasm-std = "1"
+cw-storage-plus = "0.16"
 cw20 = "0.16"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
