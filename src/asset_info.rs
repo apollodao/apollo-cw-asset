@@ -7,6 +7,7 @@ use cosmwasm_std::{
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
 
+use cw_storage_plus::{Key, KeyDeserialize, Prefixer, PrimaryKey};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -41,6 +42,43 @@ impl AssetInfoUnchecked {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct AssetInfoKey {
+    bytes: Vec<u8>,
+}
+
+impl AssetInfoKey {
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+impl From<AssetInfo> for AssetInfoKey {
+    fn from(asset_info: AssetInfo) -> Self {
+        match asset_info {
+            AssetInfo::Cw20(contract_addr) => AssetInfoKey {
+                bytes: format!("{}{}", u8::MIN, contract_addr).into_bytes(),
+            },
+            AssetInfo::Native(denom) => AssetInfoKey {
+                bytes: format!("{}{}", u8::MAX, denom).into_bytes(),
+            },
+        }
+    }
+}
+
+impl From<AssetInfoKey> for AssetInfo {
+    fn from(asset_info_key: AssetInfoKey) -> Self {
+        let bytes = asset_info_key.bytes;
+        let first_byte = bytes[0];
+        let rest = String::from_utf8(bytes[1..].to_vec()).unwrap();
+        match first_byte {
+            u8::MIN => AssetInfo::Cw20(Addr::unchecked(rest)),
+            u8::MAX => AssetInfo::Native(rest),
+            _ => panic!("Invalid AssetInfoKey"),
+        }
+    }
+}
+
 impl fmt::Display for AssetInfoUnchecked {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -56,6 +94,33 @@ impl fmt::Display for AssetInfo {
             AssetInfo::Cw20(contract_addr) => write!(f, "{}", contract_addr),
             AssetInfo::Native(denom) => write!(f, "{}", denom),
         }
+    }
+}
+
+impl<'a> PrimaryKey<'a> for AssetInfoKey {
+    type Prefix = ();
+    type SubPrefix = ();
+    type Suffix = Self;
+    type SuperSuffix = Self;
+
+    fn key(&self) -> Vec<cw_storage_plus::Key> {
+        vec![Key::Ref(&self.bytes)]
+    }
+}
+
+impl KeyDeserialize for AssetInfoKey {
+    type Output = Self;
+
+    fn from_vec(value: Vec<u8>) -> StdResult<Self::Output> {
+        Ok(Self {
+            bytes: value,
+        })
+    }
+}
+
+impl<'a> Prefixer<'a> for AssetInfoKey {
+    fn prefix(&self) -> Vec<cw_storage_plus::Key> {
+        vec![Key::Ref(&self.bytes)]
     }
 }
 
