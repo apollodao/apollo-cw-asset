@@ -16,8 +16,7 @@ astroport = []
 
 [dependencies]
 astroport-core = { package = "astroport", rev = "f1caf2e4cba74d60ff0e8ae3abba9d9e1f88c06e", git = "https://github.com/astroport-fi/astroport-core.git" }
-cosmwasm-std = "0.16"
-cw-storage-plus = "0.8"
-cw20 = "0.8"
+cosmwasm-std = "1"
+cw20 = "0.14"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
