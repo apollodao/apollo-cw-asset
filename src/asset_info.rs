@@ -66,6 +66,12 @@ impl From<AssetInfo> for AssetInfoKey {
     }
 }
 
+impl From<&AssetInfo> for AssetInfoKey {
+    fn from(asset_info: &AssetInfo) -> Self {
+        asset_info.clone().into()
+    }
+}
+
 impl From<AssetInfoKey> for AssetInfo {
     fn from(asset_info_key: AssetInfoKey) -> Self {
         let bytes = asset_info_key.bytes;
@@ -76,6 +82,12 @@ impl From<AssetInfoKey> for AssetInfo {
             u8::MAX => AssetInfo::Native(rest),
             _ => panic!("Invalid AssetInfoKey"),
         }
+    }
+}
+
+impl PartialEq<AssetInfo> for AssetInfoKey {
+    fn eq(&self, other: &AssetInfo) -> bool {
+        self.to_owned() == AssetInfoKey::from(other)
     }
 }
 
