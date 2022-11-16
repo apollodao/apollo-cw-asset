@@ -1,6 +1,6 @@
 use std::fmt;
 
-use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, StdError, StdResult};
+use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, QuerierWrapper, StdError, StdResult};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -194,6 +194,18 @@ impl AssetList {
             .iter()
             .map(|asset| asset.transfer_msg(to.clone()))
             .collect::<StdResult<Vec<CosmosMsg>>>()
+    }
+
+    /// Query balances for all assets in the list for the given address and return a new `AssetList`
+    pub fn query_balances<A: Into<String> + Clone>(
+        &self,
+        querier: &QuerierWrapper,
+        addr: &Addr,
+    ) -> StdResult<AssetList> {
+        self.into_iter()
+            .map(|asset| Ok(Asset::new(asset.info.clone(), asset.query_balance(querier, addr)?)))
+            .collect::<StdResult<Vec<Asset>>>()
+            .map(Into::into)
     }
 }
 
