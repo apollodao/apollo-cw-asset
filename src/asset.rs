@@ -2,9 +2,10 @@ use std::convert::TryInto;
 use std::fmt;
 
 use cosmwasm_std::{
-    to_binary, Addr, Api, BankMsg, Binary, Coin, CosmosMsg, StdError, StdResult, Uint128, WasmMsg,
+    from_binary, to_binary, Addr, Api, BankMsg, Binary, Coin, CosmosMsg, QuerierWrapper, StdError,
+    StdResult, Uint128, WasmMsg,
 };
-use cw20::Cw20ExecuteMsg;
+use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -220,6 +221,24 @@ impl Asset {
             })),
             AssetInfo::Native(_) => {
                 Err(StdError::generic_err("native coins do not have `transfer_from` method"))
+            }
+        }
+    }
+
+    /// Query balance of the asset for the given address
+    pub fn query_balance(&self, querier: &QuerierWrapper, addr: &Addr) -> StdResult<Uint128> {
+        match &self.info {
+            AssetInfo::Cw20(contract_addr) => {
+                let res: cw20::BalanceResponse = from_binary(&querier.query_wasm_smart(
+                    contract_addr.as_str(),
+                    &Cw20QueryMsg::Balance {
+                        address: addr.to_string(),
+                    },
+                )?)?;
+                Ok(res.balance)
+            }
+            AssetInfo::Native(denom) => {
+                querier.query_balance(addr.as_str(), denom.as_str()).map(|c| c.amount)
             }
         }
     }
