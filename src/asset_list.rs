@@ -9,7 +9,7 @@ use super::asset::{Asset, AssetBase};
 use super::asset_info::AssetInfo;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct AssetListBase<T>(Vec<AssetBase<T>>);
+pub struct AssetListBase<T>(pub(crate) Vec<AssetBase<T>>);
 
 #[allow(clippy::derivable_impls)] // clippy says `Default` can be derived here, but actually it can't
 impl<T> Default for AssetListBase<T> {
@@ -76,29 +76,6 @@ impl<'a> IntoIterator for &'a AssetList {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
-    }
-}
-
-#[cfg(feature = "astroport")]
-impl From<Vec<astroport_core::asset::Asset>> for AssetList {
-    fn from(astro_assets: Vec<astroport_core::asset::Asset>) -> Self {
-        Self(astro_assets.iter().map(|asset| asset.into()).collect())
-    }
-}
-
-#[cfg(feature = "astroport")]
-impl std::convert::TryFrom<AssetList> for [astroport_core::asset::Asset; 2] {
-    type Error = StdError;
-
-    fn try_from(value: AssetList) -> Result<[astroport_core::asset::Asset; 2], Self::Error> {
-        if value.len() != 2 {
-            return Err(StdError::generic_err(format!(
-                "AssetList must contain exactly 2 assets, but it contains {}",
-                value.len()
-            )));
-        }
-        let astro_assets = value.to_vec();
-        Ok([astro_assets[0].to_owned().into(), astro_assets[1].to_owned().into()])
     }
 }
 

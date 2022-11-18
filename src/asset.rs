@@ -88,26 +88,6 @@ impl TryInto<Coin> for &Asset {
     }
 }
 
-#[cfg(feature = "astroport")]
-impl From<&astroport_core::asset::Asset> for Asset {
-    fn from(astro_asset: &astroport_core::asset::Asset) -> Self {
-        Self {
-            info: astro_asset.info.to_owned().into(),
-            amount: astro_asset.amount,
-        }
-    }
-}
-
-#[cfg(feature = "astroport")]
-impl From<Asset> for astroport_core::asset::Asset {
-    fn from(astro_asset: Asset) -> Self {
-        Self {
-            info: astro_asset.info.into(),
-            amount: astro_asset.amount,
-        }
-    }
-}
-
 impl Asset {
     /// Create a new `AssetBase` instance based on given asset info and amount
     pub fn new<B: Into<Uint128>>(info: AssetInfo, amount: B) -> Self {

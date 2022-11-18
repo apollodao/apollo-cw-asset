@@ -136,34 +136,6 @@ impl<'a> Prefixer<'a> for AssetInfoKey {
     }
 }
 
-#[cfg(feature = "astroport")]
-impl From<astroport_core::asset::AssetInfo> for AssetInfo {
-    fn from(astro_asset: astroport_core::asset::AssetInfo) -> Self {
-        match astro_asset {
-            astroport_core::asset::AssetInfo::Token {
-                contract_addr,
-            } => Self::cw20(contract_addr),
-            astroport_core::asset::AssetInfo::NativeToken {
-                denom,
-            } => Self::native(denom),
-        }
-    }
-}
-
-#[cfg(feature = "astroport")]
-impl From<AssetInfo> for astroport_core::asset::AssetInfo {
-    fn from(astro_asset: AssetInfo) -> Self {
-        match astro_asset {
-            AssetInfo::Cw20(contract_addr) => astroport_core::asset::AssetInfo::Token {
-                contract_addr,
-            },
-            AssetInfo::Native(denom) => astroport_core::asset::AssetInfo::NativeToken {
-                denom,
-            },
-        }
-    }
-}
-
 impl AssetInfo {
     /// Create a new `AssetInfoBase` instance representing a CW20 token of given contract address
     pub fn cw20<A: Into<Addr>>(contract_addr: A) -> Self {
