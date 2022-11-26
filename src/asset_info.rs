@@ -55,13 +55,19 @@ impl AssetInfoKey {
 
 impl From<AssetInfo> for AssetInfoKey {
     fn from(asset_info: AssetInfo) -> Self {
+        let mut bytes = Vec::new();
         match asset_info {
-            AssetInfo::Cw20(contract_addr) => AssetInfoKey {
-                bytes: format!("{}{}", u8::MIN, contract_addr).into_bytes(),
-            },
-            AssetInfo::Native(denom) => AssetInfoKey {
-                bytes: format!("{}{}", u8::MAX, denom).into_bytes(),
-            },
+            AssetInfo::Cw20(contract_addr) => {
+                bytes.push(u8::MIN);
+                bytes.append(&mut contract_addr.as_bytes().to_vec());
+            }
+            AssetInfo::Native(denom) => {
+                bytes.push(u8::MAX);
+                bytes.append(&mut denom.as_bytes().to_vec());
+            }
+        }
+        AssetInfoKey {
+            bytes,
         }
     }
 }
