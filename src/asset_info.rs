@@ -218,6 +218,10 @@ impl AssetInfo {
             }
         }
     }
+
+    pub fn is_native(&self) -> bool {
+        matches!(self, AssetInfo::Native(_))
+    }
 }
 
 #[cfg(test)]

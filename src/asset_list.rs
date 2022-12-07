@@ -1,5 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
+use std::slice::{Iter, IterMut};
 
 use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, QuerierWrapper, StdError, StdResult};
 
@@ -96,12 +97,43 @@ impl AssetList {
 
     /// Return a copy of the underlying vector
     pub fn to_vec(&self) -> Vec<Asset> {
-        self.0.clone()
+        self.0.to_vec()
     }
 
     /// Return length of the asset list
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn iter(&self) -> Iter<Asset> {
+        self.0.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> IterMut<Asset> {
+        self.0.iter_mut()
+    }
+
+    pub fn get(&self, idx: usize) -> StdResult<Asset> {
+        Ok(self
+            .0
+            .get(idx)
+            .ok_or_else(|| {
+                StdError::not_found(format!("idx {} on asset list of length {}", idx, self.len()))
+            })?
+            .to_owned())
+    }
+
+    pub fn get_native(&self) -> Vec<Coin> {
+        self.iter()
+            .filter_map(|a| {
+                let native: StdResult<Coin> = a.try_into();
+                if let Ok(coin) = native {
+                    Some(coin)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     /// Find an asset in the list that matches the provided asset info
