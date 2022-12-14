@@ -1,9 +1,9 @@
-use std::fmt;
 use std::fmt::Formatter;
+use std::{convert::TryFrom, fmt};
 
 use cosmwasm_std::{
-    to_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdResult,
-    Uint128, WasmQuery,
+    to_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdError,
+    StdResult, Uint128, WasmQuery,
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
 
@@ -87,6 +87,17 @@ impl From<AssetInfoKey> for AssetInfo {
             u8::MIN => AssetInfo::Cw20(Addr::unchecked(rest)),
             u8::MAX => AssetInfo::Native(rest),
             _ => panic!("Invalid AssetInfoKey"),
+        }
+    }
+}
+
+impl TryFrom<AssetInfo> for Addr {
+    type Error = StdError;
+
+    fn try_from(asset_info: AssetInfo) -> StdResult<Self> {
+        match asset_info {
+            AssetInfo::Cw20(contract_addr) => Ok(contract_addr),
+            AssetInfo::Native(_) => Err(StdError::generic_err("Not a CW20 token")),
         }
     }
 }
