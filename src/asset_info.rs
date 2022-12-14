@@ -91,6 +91,12 @@ impl From<AssetInfoKey> for AssetInfo {
     }
 }
 
+impl From<Addr> for AssetInfo {
+    fn from(contract_addr: Addr) -> Self {
+        AssetInfo::Cw20(contract_addr)
+    }
+}
+
 impl PartialEq<AssetInfo> for AssetInfoKey {
     fn eq(&self, other: &AssetInfo) -> bool {
         self.to_owned() == AssetInfoKey::from(other)
