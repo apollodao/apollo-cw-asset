@@ -208,6 +208,8 @@ impl AssetInfo {
 
 #[cfg(test)]
 mod test {
+    use std::convert::TryInto;
+
     use super::*;
     use cosmwasm_std::testing::MockApi;
 
@@ -251,5 +253,20 @@ mod test {
         let unchecked: AssetInfoUnchecked = checked.clone().into();
 
         assert_eq!(unchecked.check(&api).unwrap(), checked);
+    }
+
+    #[test]
+    fn test_from_addr() {
+        let addr = Addr::unchecked("mock_token");
+        let info = AssetInfo::from(addr.clone());
+        assert_eq!(info, AssetInfo::Cw20(addr));
+    }
+
+    #[test]
+    fn test_try_from_asset_info_for_addr() {
+        let addr = Addr::unchecked("mock_token");
+        let info = AssetInfo::Cw20(addr.clone());
+        let addr2: Addr = info.try_into().unwrap();
+        assert_eq!(addr, addr2);
     }
 }
