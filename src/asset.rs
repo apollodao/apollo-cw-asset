@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 
 use cosmwasm_std::{
@@ -64,14 +64,14 @@ impl From<&Coin> for Asset {
     }
 }
 
-impl TryInto<Coin> for Asset {
+impl TryFrom<Asset> for Coin {
     type Error = StdError;
 
-    fn try_into(self) -> Result<Coin, Self::Error> {
-        match self.info {
-            AssetInfo::Native(denom) => Ok(Coin {
+    fn try_from(asset: Asset) -> Result<Self, Self::Error> {
+        match asset.info {
+            AssetInfo::Native(denom) => Ok(Self {
                 denom,
-                amount: self.amount,
+                amount: asset.amount,
             }),
             _ => Err(StdError::parse_err("Asset", "Cannot convert non-native asset to Coin")),
         }

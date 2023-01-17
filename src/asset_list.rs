@@ -1,9 +1,12 @@
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 
 use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, QuerierWrapper, StdError, StdResult};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::AssetUnchecked;
 
 use super::asset::{Asset, AssetBase};
 use super::asset_info::AssetInfo;
@@ -21,9 +24,33 @@ impl<T> Default for AssetListBase<T> {
 pub type AssetListUnchecked = AssetListBase<String>;
 pub type AssetList = AssetListBase<Addr>;
 
+impl From<Vec<AssetUnchecked>> for AssetListUnchecked {
+    fn from(assets: Vec<AssetUnchecked>) -> Self {
+        Self(assets)
+    }
+}
+
 impl From<AssetList> for AssetListUnchecked {
     fn from(list: AssetList) -> Self {
         Self(list.to_vec().iter().cloned().map(|asset| asset.into()).collect())
+    }
+}
+
+impl<A, B> From<B> for AssetList
+where
+    A: Into<Asset>,
+    B: IntoIterator<Item = A>,
+{
+    fn from(list: B) -> Self {
+        Self(list.into_iter().map(|a| a.into()).collect())
+    }
+}
+
+impl TryFrom<AssetList> for Vec<Coin> {
+    type Error = StdError;
+
+    fn try_from(list: AssetList) -> StdResult<Self> {
+        list.0.into_iter().map(|asset| asset.try_into()).collect::<StdResult<Vec<Coin>>>()
     }
 }
 
@@ -43,30 +70,6 @@ impl fmt::Display for AssetList {
             "{}",
             self.0.iter().map(|asset| asset.to_string()).collect::<Vec<String>>().join(",")
         )
-    }
-}
-
-impl From<Vec<Asset>> for AssetList {
-    fn from(vec: Vec<Asset>) -> Self {
-        Self(vec)
-    }
-}
-
-impl From<&[Asset]> for AssetList {
-    fn from(vec: &[Asset]) -> Self {
-        vec.to_vec().into()
-    }
-}
-
-impl From<Vec<Coin>> for AssetList {
-    fn from(coins: Vec<Coin>) -> Self {
-        Self(coins.iter().map(|coin| coin.into()).collect())
-    }
-}
-
-impl From<&[Coin]> for AssetList {
-    fn from(coins: &[Coin]) -> Self {
-        coins.to_vec().into()
     }
 }
 
@@ -210,6 +213,8 @@ mod test_helpers {
 
 #[cfg(test)]
 mod tests {
+    use crate::AssetInfoUnchecked;
+
     use super::super::asset::Asset;
     use super::test_helpers::{mock_list, mock_token, uluna, uusd};
     use super::*;
@@ -343,5 +348,25 @@ mod tests {
                 })
             ]
         );
+    }
+
+    #[test]
+    fn assetlist_unchecked_from_vec() {
+        let asset1 = AssetUnchecked {
+            info: AssetInfoUnchecked::Native("token1".to_string()),
+            amount: Uint128::new(12345),
+        };
+        let asset2 = AssetUnchecked {
+            info: AssetInfoUnchecked::Native("token2".to_string()),
+            amount: Uint128::new(67890),
+        };
+        let api = MockApi::default();
+
+        let list: AssetListUnchecked = vec![asset1.clone(), asset2.clone()].into();
+
+        let expected =
+            AssetList::from(vec![asset1.check(&api).unwrap(), asset2.check(&api).unwrap()]);
+
+        assert_eq!(list.check(&api).unwrap(), expected);
     }
 }
