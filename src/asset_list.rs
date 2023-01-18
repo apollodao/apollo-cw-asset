@@ -57,9 +57,11 @@ impl TryFrom<AssetList> for Vec<Coin> {
 impl AssetListUnchecked {
     /// Validate contract address of every asset in the list, and return a new `AssetList` instance
     pub fn check(&self, api: &dyn Api) -> StdResult<AssetList> {
-        Ok(AssetList::from(
-            self.0.iter().map(|asset| asset.check(api)).collect::<StdResult<Vec<Asset>>>()?,
-        ))
+        let mut assets = AssetList::default();
+        for asset in &self.0 {
+            assets.add(&asset.check(api)?)?;
+        }
+        Ok(assets)
     }
 }
 
@@ -368,5 +370,26 @@ mod tests {
             AssetList::from(vec![asset1.check(&api).unwrap(), asset2.check(&api).unwrap()]);
 
         assert_eq!(list.check(&api).unwrap(), expected);
+    }
+    #[test_case(vec![], vec![]; "empty")]
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin2", 67890u128)], 
+                vec![Asset::native("coin1", 12345u128), Asset::native("coin2", 67890u128)];
+                "native")]
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin1", 67890u128)], 
+                vec![Asset::native("coin1", 80235u128)] ;
+                "duplicates")]
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("coin2", 67890u128)], 
+                vec![Asset::native("coin1", 12345u128), Asset::cw20(Addr::unchecked("coin2"), 67890u128)];
+                "cw20 valid mock address")]
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("co", 67890u128)], 
+                vec![Asset::native("coin1", 12345u128), Asset::cw20(Addr::unchecked("co"), 67890u128)]
+                => matches Err(_) ;
+                "cw20 invalid mock address")]
+    fn check(unchecked: Vec<AssetUnchecked>, expected: Vec<Asset>) -> StdResult<()> {
+        let unchecked = AssetListUnchecked::from(unchecked);
+
+        assert_eq!(unchecked.check(&MockApi::default())?, AssetList::from(expected));
+
+        Ok(())
     }
 }
