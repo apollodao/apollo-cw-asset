@@ -46,6 +46,14 @@ impl AssetInfoUnchecked {
             AssetInfoUnchecked::Native(denom) => AssetInfo::Native(denom.clone()),
         })
     }
+
+    pub fn native<A: Into<String>>(denom: A) -> Self {
+        AssetInfoUnchecked::Native(denom.into())
+    }
+
+    pub fn cw20<A: Into<String>>(contract_addr: A) -> Self {
+        AssetInfoUnchecked::Cw20(contract_addr.into())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -274,5 +282,29 @@ mod test {
         let info = AssetInfo::Cw20(addr.clone());
         let addr2: Addr = info.try_into().unwrap();
         assert_eq!(addr, addr2);
+    }
+
+    #[test]
+    fn native_asset_info() {
+        let info = AssetInfo::native("uusd");
+        assert_eq!(AssetInfo::Native("uusd".to_string()), info);
+    }
+
+    #[test]
+    fn cw20_asset_info() {
+        let info = AssetInfo::cw20(Addr::unchecked("mock_token"));
+        assert_eq!(AssetInfo::Cw20(Addr::unchecked("mock_token")), info);
+    }
+
+    #[test]
+    fn native_asset_info_unchecked() {
+        let info = AssetInfoUnchecked::Native("uusd".to_string());
+        assert_eq!(AssetInfoUnchecked::Native("uusd".to_string()), info);
+    }
+
+    #[test]
+    fn cw20_asset_info_unchecked() {
+        let info = AssetInfoUnchecked::Cw20("mock_token".to_string());
+        assert_eq!(AssetInfoUnchecked::Cw20("mock_token".to_string()), info);
     }
 }
