@@ -1,9 +1,12 @@
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 
 use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, QuerierWrapper, StdError, StdResult};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::AssetUnchecked;
 
 use super::asset::{Asset, AssetBase};
 use super::asset_info::AssetInfo;
@@ -21,18 +24,48 @@ impl<T> Default for AssetListBase<T> {
 pub type AssetListUnchecked = AssetListBase<String>;
 pub type AssetList = AssetListBase<Addr>;
 
+impl From<Vec<AssetUnchecked>> for AssetListUnchecked {
+    fn from(assets: Vec<AssetUnchecked>) -> Self {
+        Self(assets)
+    }
+}
+
 impl From<AssetList> for AssetListUnchecked {
     fn from(list: AssetList) -> Self {
         Self(list.to_vec().iter().cloned().map(|asset| asset.into()).collect())
     }
 }
 
+impl<A, B> From<B> for AssetList
+where
+    A: Into<Asset>,
+    B: IntoIterator<Item = A>,
+{
+    fn from(list: B) -> Self {
+        let mut asset_list = AssetList::default();
+        for asset in list {
+            asset_list.add(&asset.into()).unwrap();
+        }
+        asset_list
+    }
+}
+
+impl TryFrom<AssetList> for Vec<Coin> {
+    type Error = StdError;
+
+    fn try_from(list: AssetList) -> StdResult<Self> {
+        list.0.into_iter().map(|asset| asset.try_into()).collect::<StdResult<Vec<Coin>>>()
+    }
+}
+
 impl AssetListUnchecked {
     /// Validate contract address of every asset in the list, and return a new `AssetList` instance
     pub fn check(&self, api: &dyn Api) -> StdResult<AssetList> {
-        Ok(AssetList::from(
-            self.0.iter().map(|asset| asset.check(api)).collect::<StdResult<Vec<Asset>>>()?,
-        ))
+        let mut assets = AssetList::default();
+        for asset in &self.0 {
+            assets.add(&asset.check(api)?)?;
+        }
+        Ok(assets)
     }
 }
 
@@ -43,30 +76,6 @@ impl fmt::Display for AssetList {
             "{}",
             self.0.iter().map(|asset| asset.to_string()).collect::<Vec<String>>().join(",")
         )
-    }
-}
-
-impl From<Vec<Asset>> for AssetList {
-    fn from(vec: Vec<Asset>) -> Self {
-        Self(vec)
-    }
-}
-
-impl From<&[Asset]> for AssetList {
-    fn from(vec: &[Asset]) -> Self {
-        vec.to_vec().into()
-    }
-}
-
-impl From<Vec<Coin>> for AssetList {
-    fn from(coins: Vec<Coin>) -> Self {
-        Self(coins.iter().map(|coin| coin.into()).collect())
-    }
-}
-
-impl From<&[Coin]> for AssetList {
-    fn from(coins: &[Coin]) -> Self {
-        coins.to_vec().into()
     }
 }
 
@@ -210,6 +219,9 @@ mod test_helpers {
 
 #[cfg(test)]
 mod tests {
+    use crate::AssetInfoUnchecked;
+    use crate::AssetUnchecked as AU;
+
     use super::super::asset::Asset;
     use super::test_helpers::{mock_list, mock_token, uluna, uusd};
     use super::*;
@@ -219,6 +231,8 @@ mod tests {
         WasmMsg,
     };
     use cw20::Cw20ExecuteMsg;
+
+    use test_case::test_case;
 
     #[test]
     fn displaying() {
@@ -343,5 +357,67 @@ mod tests {
                 })
             ]
         );
+    }
+
+    #[test]
+    fn unchecked_from_vec() {
+        let asset1 = AssetUnchecked {
+            info: AssetInfoUnchecked::Native("token1".to_string()),
+            amount: Uint128::new(12345),
+        };
+        let asset2 = AssetUnchecked {
+            info: AssetInfoUnchecked::Native("token2".to_string()),
+            amount: Uint128::new(67890),
+        };
+        let api = MockApi::default();
+
+        let list: AssetListUnchecked = vec![asset1.clone(), asset2.clone()].into();
+
+        let expected =
+            AssetList::from(vec![asset1.check(&api).unwrap(), asset2.check(&api).unwrap()]);
+
+        assert_eq!(list.check(&api).unwrap(), expected);
+    }
+
+    #[test]
+    fn generic_from() {
+        let coins = vec![Coin::new(1234, "coin1"), Coin::new(5678, "coin2")];
+
+        let list: AssetList = coins.into();
+
+        let unchecked = AssetListUnchecked::from(vec![
+            AssetUnchecked {
+                info: AssetInfoUnchecked::Native("coin1".to_string()),
+                amount: Uint128::new(1234),
+            },
+            AssetUnchecked {
+                info: AssetInfoUnchecked::Native("coin2".to_string()),
+                amount: Uint128::new(5678),
+            },
+        ]);
+
+        assert_eq!(list, unchecked.check(&MockApi::default()).unwrap());
+    }
+
+    #[test_case(vec![], vec![]; "empty")]
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin2", 67890u128)], 
+                vec![Asset::native("coin1", 12345u128), Asset::native("coin2", 67890u128)];
+                "native")]
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin1", 67890u128)], 
+                vec![Asset::native("coin1", 80235u128)] ;
+                "duplicates")]
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("coin2", 67890u128)], 
+                vec![Asset::native("coin1", 12345u128), Asset::cw20(Addr::unchecked("coin2"), 67890u128)];
+                "cw20 valid mock address")]
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("co", 67890u128)], 
+                vec![Asset::native("coin1", 12345u128), Asset::cw20(Addr::unchecked("co"), 67890u128)]
+                => matches Err(_) ;
+                "cw20 invalid mock address")]
+    fn check(unchecked: Vec<AssetUnchecked>, expected: Vec<Asset>) -> StdResult<()> {
+        let unchecked = AssetListUnchecked::from(unchecked);
+
+        assert_eq!(unchecked.check(&MockApi::default())?, AssetList::from(expected));
+
+        Ok(())
     }
 }

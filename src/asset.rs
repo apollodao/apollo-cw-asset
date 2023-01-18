@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 
 use cosmwasm_std::{
@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "terra")]
 use {cosmwasm_std::QuerierWrapper, terra_cosmwasm::TerraQuerier};
+
+use crate::AssetInfoUnchecked;
 
 use super::asset_info::{AssetInfo, AssetInfoBase};
 
@@ -34,6 +36,27 @@ impl From<Asset> for AssetUnchecked {
 }
 
 impl AssetUnchecked {
+    pub fn new<A: Into<Uint128>>(info: AssetInfoUnchecked, amount: A) -> Self {
+        Self {
+            info,
+            amount: amount.into(),
+        }
+    }
+
+    pub fn native<A: Into<String>, B: Into<Uint128>>(denom: A, amount: B) -> Self {
+        Self {
+            info: AssetInfoUnchecked::native(denom),
+            amount: amount.into(),
+        }
+    }
+
+    pub fn cw20<A: Into<String>, B: Into<Uint128>>(contract_addr: A, amount: B) -> Self {
+        Self {
+            info: AssetInfoUnchecked::cw20(contract_addr),
+            amount: amount.into(),
+        }
+    }
+
     /// Validate contract address (if any) and returns a new `Asset` instance
     pub fn check(&self, api: &dyn Api) -> StdResult<Asset> {
         Ok(Asset {
@@ -64,14 +87,14 @@ impl From<&Coin> for Asset {
     }
 }
 
-impl TryInto<Coin> for Asset {
+impl TryFrom<Asset> for Coin {
     type Error = StdError;
 
-    fn try_into(self) -> Result<Coin, Self::Error> {
-        match self.info {
-            AssetInfo::Native(denom) => Ok(Coin {
+    fn try_from(asset: Asset) -> Result<Self, Self::Error> {
+        match asset.info {
+            AssetInfo::Native(denom) => Ok(Self {
                 denom,
-                amount: self.amount,
+                amount: asset.amount,
             }),
             _ => Err(StdError::parse_err("Asset", "Cannot convert non-native asset to Coin")),
         }
@@ -100,7 +123,7 @@ impl Asset {
     /// Create a new `AssetBase` instance representing a CW20 token of given contract address and amount
     pub fn cw20<B: Into<Uint128>>(contract_addr: Addr, amount: B) -> Self {
         Self {
-            info: AssetInfoBase::cw20(contract_addr),
+            info: AssetInfo::cw20(contract_addr),
             amount: amount.into(),
         }
     }
@@ -108,7 +131,7 @@ impl Asset {
     /// Create a new `AssetBase` instance representing a native coin of given denom
     pub fn native<A: Into<String>, B: Into<Uint128>>(denom: A, amount: B) -> Self {
         Self {
-            info: AssetInfoBase::native(denom),
+            info: AssetInfo::native(denom),
             amount: amount.into(),
         }
     }
@@ -362,6 +385,79 @@ mod tests {
         assert_eq!(
             err,
             Err(StdError::generic_err("native coins do not have `transfer_from` method"))
+        );
+    }
+
+    #[test]
+    fn new() {
+        let asset = Asset::new(AssetInfo::Native(String::from("uusd")), 123456u128);
+        assert_eq!(
+            asset,
+            Asset {
+                info: AssetInfo::Native(String::from("uusd")),
+                amount: Uint128::new(123456u128)
+            }
+        );
+    }
+
+    #[test]
+    fn native() {
+        let asset = Asset::native("uusd", 123456u128);
+        assert_eq!(
+            asset,
+            Asset {
+                info: AssetInfo::Native(String::from("uusd")),
+                amount: Uint128::new(123456u128)
+            }
+        );
+    }
+
+    #[test]
+    fn cw20() {
+        let asset = Asset::cw20(Addr::unchecked("mock_token"), 123456u128);
+        assert_eq!(
+            asset,
+            Asset {
+                info: AssetInfo::Cw20(Addr::unchecked("mock_token")),
+                amount: Uint128::new(123456u128)
+            }
+        );
+    }
+
+    #[test]
+    fn new_unchecked() {
+        let asset =
+            AssetUnchecked::new(AssetInfoUnchecked::Native(String::from("uusd")), 123456u128);
+        assert_eq!(
+            asset,
+            AssetUnchecked {
+                info: AssetInfoUnchecked::Native(String::from("uusd")),
+                amount: Uint128::new(123456u128)
+            }
+        );
+    }
+
+    #[test]
+    fn native_unchecked() {
+        let asset = AssetUnchecked::native("uusd", 123456u128);
+        assert_eq!(
+            asset,
+            AssetUnchecked {
+                info: AssetInfoUnchecked::Native(String::from("uusd")),
+                amount: Uint128::new(123456u128)
+            }
+        );
+    }
+
+    #[test]
+    fn cw20_unchecked() {
+        let asset = AssetUnchecked::cw20("mock_token", 123456u128);
+        assert_eq!(
+            asset,
+            AssetUnchecked {
+                info: AssetInfoUnchecked::Cw20("mock_token".to_string()),
+                amount: Uint128::new(123456u128)
+            }
         );
     }
 }
