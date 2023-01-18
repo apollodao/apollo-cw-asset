@@ -42,7 +42,11 @@ where
     B: IntoIterator<Item = A>,
 {
     fn from(list: B) -> Self {
-        Self(list.into_iter().map(|a| a.into()).collect())
+        let mut asset_list = AssetList::default();
+        for asset in list {
+            asset_list.add(&asset.into()).unwrap();
+        }
+        asset_list
     }
 }
 
@@ -216,6 +220,7 @@ mod test_helpers {
 #[cfg(test)]
 mod tests {
     use crate::AssetInfoUnchecked;
+    use crate::AssetUnchecked as AU;
 
     use super::super::asset::Asset;
     use super::test_helpers::{mock_list, mock_token, uluna, uusd};
@@ -226,6 +231,8 @@ mod tests {
         WasmMsg,
     };
     use cw20::Cw20ExecuteMsg;
+
+    use test_case::test_case;
 
     #[test]
     fn displaying() {
@@ -353,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn assetlist_unchecked_from_vec() {
+    fn unchecked_from_vec() {
         let asset1 = AssetUnchecked {
             info: AssetInfoUnchecked::Native("token1".to_string()),
             amount: Uint128::new(12345),
@@ -371,6 +378,27 @@ mod tests {
 
         assert_eq!(list.check(&api).unwrap(), expected);
     }
+
+    #[test]
+    fn generic_from() {
+        let coins = vec![Coin::new(1234, "coin1"), Coin::new(5678, "coin2")];
+
+        let list: AssetList = coins.into();
+
+        let unchecked = AssetListUnchecked::from(vec![
+            AssetUnchecked {
+                info: AssetInfoUnchecked::Native("coin1".to_string()),
+                amount: Uint128::new(1234),
+            },
+            AssetUnchecked {
+                info: AssetInfoUnchecked::Native("coin2".to_string()),
+                amount: Uint128::new(5678),
+            },
+        ]);
+
+        assert_eq!(list, unchecked.check(&MockApi::default()).unwrap());
+    }
+
     #[test_case(vec![], vec![]; "empty")]
     #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin2", 67890u128)], 
                 vec![Asset::native("coin1", 12345u128), Asset::native("coin2", 67890u128)];
