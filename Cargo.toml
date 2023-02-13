@@ -1,11 +1,11 @@
 [package]
-name = "cw-asset"
+name = "apollo-cw-asset"
 description = "Helper library for interacting with Cosmos assets (SDK coins and CW20 tokens)"
-version = "0.3.0"
-authors = ["larry <larry@delphidigital.io>"]
+version = "0.1.0"
+authors = ["larry <larry@delphidigital.io>", "Apollo DAO Contributors <shared@apollo.farm>"]
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/larry0x/cw-asset"
+repository = "https://github.com/apollodao/apollo-cw-asset"
 
 [lib]
 doctest = false # do not run doc tests
@@ -15,9 +15,11 @@ default = []
 
 [dependencies]
 cosmwasm-std = "1"
-cw-storage-plus = "0.16"
-cw20 = "0.16"
-schemars = "0.8.1"
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-cosmwasm-schema = "1.1.0"
+cw-storage-plus = "1.0.1"
+cw20 = "1.0.1"
+schemars = "0.8.11"
+serde = { version = "1.0.152", default-features = false, features = ["derive"] }
+cosmwasm-schema = "1.2.1"
+
+[dev-dependencies]
 test-case = "2.2.2"
