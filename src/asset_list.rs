@@ -1,5 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
+use std::slice::{Iter, IterMut};
 
 use cosmwasm_std::{Addr, Api, Coin, CosmosMsg, QuerierWrapper, StdError, StdResult};
 
@@ -96,12 +97,42 @@ impl AssetList {
 
     /// Return a copy of the underlying vector
     pub fn to_vec(&self) -> Vec<Asset> {
-        self.0.clone()
+        self.0.to_vec()
     }
 
     /// Return length of the asset list
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    /// Returns an iterator over the asset list
+    pub fn iter(&self) -> Iter<Asset> {
+        self.0.iter()
+    }
+
+    /// Returns a mutable iterator over the asset list
+    pub fn iter_mut(&mut self) -> IterMut<Asset> {
+        self.0.iter_mut()
+    }
+
+    /// Returns a reference to the asset at the given index. Return `None` if the index
+    /// does not exist.
+    pub fn get(&self, idx: usize) -> Option<&Asset> {
+        self.0.get(idx)
+    }
+
+    /// Returns a vector of all native coins in the asset list.
+    pub fn get_native_coins(&self) -> Vec<Coin> {
+        self.iter()
+            .filter_map(|a| {
+                let native: StdResult<Coin> = a.try_into();
+                if let Ok(coin) = native {
+                    Some(coin)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     /// Find an asset in the list that matches the provided asset info
@@ -419,5 +450,46 @@ mod tests {
         assert_eq!(unchecked.check(&MockApi::default())?, AssetList::from(expected));
 
         Ok(())
+    }
+
+    #[test]
+    fn into_iter() {
+        let list = mock_list();
+        let mut iter = (&list).into_iter();
+        assert_eq!(iter.next(), Some(&Asset::new(uusd(), 69420u128)));
+        assert_eq!(iter.next(), Some(&Asset::new(mock_token(), 88888u128)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter() {
+        let list = mock_list();
+        let mut iter = list.iter();
+        assert_eq!(iter.next(), Some(&Asset::new(uusd(), 69420u128)));
+        assert_eq!(iter.next(), Some(&Asset::new(mock_token(), 88888u128)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter_mut() {
+        let mut list = mock_list();
+        let mut iter = list.iter_mut();
+        assert_eq!(iter.next(), Some(&mut Asset::new(uusd(), 69420u128)));
+        assert_eq!(iter.next(), Some(&mut Asset::new(mock_token(), 88888u128)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn get() {
+        let list = mock_list();
+        assert_eq!(list.get(0), Some(&Asset::new(uusd(), 69420u128)));
+        assert_eq!(list.get(1), Some(&Asset::new(mock_token(), 88888u128)));
+        assert_eq!(list.get(2), None);
+    }
+
+    #[test]
+    fn get_native_coins() {
+        let list = mock_list();
+        assert_eq!(list.get_native_coins(), vec![Coin::new(69420, "uusd")]);
     }
 }
