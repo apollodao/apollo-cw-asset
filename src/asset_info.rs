@@ -1,5 +1,6 @@
+use std::convert::TryFrom;
+use std::fmt;
 use std::fmt::Formatter;
-use std::{convert::TryFrom, fmt};
 
 use cosmwasm_std::{
     to_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdError,
@@ -55,7 +56,8 @@ impl From<AssetInfo> for Denom {
 }
 
 impl AssetInfoUnchecked {
-    /// Validate contract address (if any) and returns a new `AssetInfo` instance
+    /// Validate contract address (if any) and returns a new `AssetInfo`
+    /// instance
     pub fn check(&self, api: &dyn Api) -> StdResult<AssetInfo> {
         Ok(match self {
             AssetInfoUnchecked::Cw20(contract_addr) => {
@@ -98,9 +100,7 @@ impl From<AssetInfo> for AssetInfoKey {
                 bytes.append(&mut denom.as_bytes().to_vec());
             }
         }
-        AssetInfoKey {
-            bytes,
-        }
+        AssetInfoKey { bytes }
     }
 }
 
@@ -179,9 +179,7 @@ impl KeyDeserialize for AssetInfoKey {
     type Output = Self;
 
     fn from_vec(value: Vec<u8>) -> StdResult<Self::Output> {
-        Ok(Self {
-            bytes: value,
-        })
+        Ok(Self { bytes: value })
     }
 }
 
@@ -192,12 +190,14 @@ impl<'a> Prefixer<'a> for AssetInfoKey {
 }
 
 impl AssetInfo {
-    /// Create a new `AssetInfoBase` instance representing a CW20 token of given contract address
+    /// Create a new `AssetInfoBase` instance representing a CW20 token of given
+    /// contract address
     pub fn cw20<A: Into<Addr>>(contract_addr: A) -> Self {
         AssetInfo::Cw20(contract_addr.into())
     }
 
-    /// Create a new `AssetInfoBase` instance representing a native token of given denom
+    /// Create a new `AssetInfoBase` instance representing a native token of
+    /// given denom
     pub fn native<A: Into<String>>(denom: A) -> Self {
         AssetInfo::Native(denom.into())
     }

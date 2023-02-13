@@ -10,9 +10,7 @@ pub struct Cw20Querier {
 impl Cw20Querier {
     pub fn handle_query(&self, contract_addr: &Addr, query: Cw20QueryMsg) -> QuerierResult {
         match query {
-            Cw20QueryMsg::Balance {
-                address,
-            } => {
+            Cw20QueryMsg::Balance { address } => {
                 let contract_balances = match self.balances.get(contract_addr) {
                     Some(balances) => balances,
                     None => {
@@ -38,11 +36,7 @@ impl Cw20Querier {
                     }
                 };
 
-                Ok(to_binary(&BalanceResponse {
-                    balance: *balance,
-                })
-                .into())
-                .into()
+                Ok(to_binary(&BalanceResponse { balance: *balance }).into()).into()
             }
 
             query => Err(SystemError::InvalidRequest {
@@ -57,7 +51,10 @@ impl Cw20Querier {
         let contract_addr = Addr::unchecked(contract);
         let user_addr = Addr::unchecked(user);
 
-        let contract_balances = self.balances.entry(contract_addr).or_insert_with(HashMap::new);
+        let contract_balances = self
+            .balances
+            .entry(contract_addr)
+            .or_insert_with(HashMap::new);
         contract_balances.insert(user_addr, Uint128::new(balance));
     }
 }

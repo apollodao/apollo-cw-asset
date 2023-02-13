@@ -6,7 +6,8 @@ use cosmwasm_std::{
 use cw20::Cw20QueryMsg;
 use terra_cosmwasm::TerraQueryWrapper;
 
-use super::{cw20_querier::Cw20Querier, native_querier::NativeQuerier};
+use super::cw20_querier::Cw20Querier;
+use super::native_querier::NativeQuerier;
 
 pub struct CustomMockQuerier {
     base: MockQuerier<TerraQueryWrapper>,
@@ -43,15 +44,11 @@ impl Querier for CustomMockQuerier {
 impl CustomMockQuerier {
     pub fn handle_query(&self, request: &QueryRequest<TerraQueryWrapper>) -> QuerierResult {
         match request {
-            QueryRequest::Custom(TerraQueryWrapper {
-                route,
-                query_data,
-            }) => self.native_querier.handle_query(route, query_data),
+            QueryRequest::Custom(TerraQueryWrapper { route, query_data }) => {
+                self.native_querier.handle_query(route, query_data)
+            }
 
-            QueryRequest::Wasm(WasmQuery::Smart {
-                contract_addr,
-                msg,
-            }) => {
+            QueryRequest::Wasm(WasmQuery::Smart { contract_addr, msg }) => {
                 let contract_addr = Addr::unchecked(contract_addr);
 
                 let parse_cw20_query: StdResult<Cw20QueryMsg> = from_binary(msg);
