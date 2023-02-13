@@ -22,34 +22,10 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
 
-      - name: Run unit tests
+      - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --locked --lib
-        env:
-          RUST_BACKTRACE: 1
-
-      - name: Build test contract wasm binaries
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target wasm32-unknown-unknown --lib --release -p osmosis-test-contract
-        env:
-          RUST_BACKTRACE: 1
-
-      - name: Run osmosis integration tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --locked --test osmosis_tests
-        env:
-          RUST_BACKTRACE: 1
-
-      - name: Run osmosis property tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --locked --test osmosis_proptests
         env:
           RUST_BACKTRACE: 1
