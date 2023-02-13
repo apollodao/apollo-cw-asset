@@ -113,17 +113,11 @@ impl AssetList {
         self.0.iter_mut()
     }
 
-    pub fn get(&self, idx: usize) -> StdResult<Asset> {
-        Ok(self
-            .0
-            .get(idx)
-            .ok_or_else(|| {
-                StdError::not_found(format!("idx {} on asset list of length {}", idx, self.len()))
-            })?
-            .to_owned())
+    pub fn get(&self, idx: usize) -> Option<&Asset> {
+        self.0.get(idx)
     }
 
-    pub fn get_native(&self) -> Vec<Coin> {
+    pub fn get_native_coins(&self) -> Vec<Coin> {
         self.iter()
             .filter_map(|a| {
                 let native: StdResult<Coin> = a.try_into();
@@ -451,5 +445,46 @@ mod tests {
         assert_eq!(unchecked.check(&MockApi::default())?, AssetList::from(expected));
 
         Ok(())
+    }
+
+    #[test]
+    fn into_iter() {
+        let list = mock_list();
+        let mut iter = (&list).into_iter();
+        assert_eq!(iter.next(), Some(&Asset::new(uusd(), 69420u128)));
+        assert_eq!(iter.next(), Some(&Asset::new(mock_token(), 88888u128)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter() {
+        let list = mock_list();
+        let mut iter = list.iter();
+        assert_eq!(iter.next(), Some(&Asset::new(uusd(), 69420u128)));
+        assert_eq!(iter.next(), Some(&Asset::new(mock_token(), 88888u128)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter_mut() {
+        let mut list = mock_list();
+        let mut iter = list.iter_mut();
+        assert_eq!(iter.next(), Some(&mut Asset::new(uusd(), 69420u128)));
+        assert_eq!(iter.next(), Some(&mut Asset::new(mock_token(), 88888u128)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn get() {
+        let list = mock_list();
+        assert_eq!(list.get(0), Some(&Asset::new(uusd(), 69420u128)));
+        assert_eq!(list.get(1), Some(&Asset::new(mock_token(), 88888u128)));
+        assert_eq!(list.get(2), None);
+    }
+
+    #[test]
+    fn get_native_coins() {
+        let list = mock_list();
+        assert_eq!(list.get_native_coins(), vec![Coin::new(69420, "uusd")]);
     }
 }
