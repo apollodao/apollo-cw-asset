@@ -12,7 +12,6 @@ doctest = false # do not run doc tests
 
 [features]
 default = []
-astroport = []
 
 [dependencies]
 cosmwasm-std = "1"
