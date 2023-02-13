@@ -105,18 +105,23 @@ impl AssetList {
         self.0.len()
     }
 
+    /// Returns an iterator over the asset list
     pub fn iter(&self) -> Iter<Asset> {
         self.0.iter()
     }
 
+    /// Returns a mutable iterator over the asset list
     pub fn iter_mut(&mut self) -> IterMut<Asset> {
         self.0.iter_mut()
     }
 
+    /// Returns a reference to the asset at the given index. Return `None` if the index
+    /// does not exist.
     pub fn get(&self, idx: usize) -> Option<&Asset> {
         self.0.get(idx)
     }
 
+    /// Returns a vector of all native coins in the asset list.
     pub fn get_native_coins(&self) -> Vec<Coin> {
         self.iter()
             .filter_map(|a| {
