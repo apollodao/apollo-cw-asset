@@ -34,6 +34,13 @@ jobs:
           command: clippy
           args: --fix -- -D warnings
 
+      - name: Print fmt version
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
+          command: fmt
+          args: --version
+
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
@@ -48,4 +55,3 @@ jobs:
 
       - name: Lint todo comments
         run: ./scripts/todo-lint.sh
-
