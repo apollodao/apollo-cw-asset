@@ -17,7 +17,7 @@ use crate::AssetInfoUnchecked;
 
 use super::asset_info::{AssetInfo, AssetInfoBase};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct AssetBase<T> {
     pub info: AssetInfoBase<T>,
     pub amount: Uint128,
@@ -96,7 +96,10 @@ impl TryFrom<Asset> for Coin {
                 denom,
                 amount: asset.amount,
             }),
-            _ => Err(StdError::parse_err("Asset", "Cannot convert non-native asset to Coin")),
+            _ => Err(StdError::parse_err(
+                "Asset",
+                "Cannot convert non-native asset to Coin",
+            )),
         }
     }
 }
@@ -138,7 +141,9 @@ impl TryFrom<Asset> for Cw20CoinVerified {
                 address: contract_addr,
                 amount: asset.amount,
             }),
-            _ => Err(StdError::generic_err("Cannot convert non-CW20 asset to Cw20Coin")),
+            _ => Err(StdError::generic_err(
+                "Cannot convert non-CW20 asset to Cw20Coin",
+            )),
         }
     }
 }
@@ -164,7 +169,9 @@ impl TryFrom<AssetUnchecked> for Cw20Coin {
                 address: contract_addr,
                 amount: asset.amount,
             }),
-            _ => Err(StdError::generic_err("Cannot convert non-CW20 asset to Cw20Coin")),
+            _ => Err(StdError::generic_err(
+                "Cannot convert non-CW20 asset to Cw20Coin",
+            )),
         }
     }
 }
@@ -178,7 +185,8 @@ impl Asset {
         }
     }
 
-    /// Create a new `AssetBase` instance representing a CW20 token of given contract address and amount
+    /// Create a new `AssetBase` instance representing a CW20 token of given
+    /// contract address and amount
     pub fn cw20<B: Into<Uint128>>(contract_addr: Addr, amount: B) -> Self {
         Self {
             info: AssetInfo::cw20(contract_addr),
@@ -186,7 +194,8 @@ impl Asset {
         }
     }
 
-    /// Create a new `AssetBase` instance representing a native coin of given denom
+    /// Create a new `AssetBase` instance representing a native coin of given
+    /// denom
     pub fn native<A: Into<String>, B: Into<Uint128>>(denom: A, amount: B) -> Self {
         Self {
             info: AssetInfo::native(denom),
@@ -194,13 +203,14 @@ impl Asset {
         }
     }
 
-    /// Generate a message that sends a CW20 token to the specified recipient with a binary payload
+    /// Generate a message that sends a CW20 token to the specified recipient
+    /// with a binary payload
     ///
     /// NOTE: Only works for CW20 tokens
     ///
     /// **Usage:**
-    /// The following code generates a message that sends 12345 units of a mock token to a contract,
-    /// invoking a mock execute function.
+    /// The following code generates a message that sends 12345 units of a mock
+    /// token to a contract, invoking a mock execute function.
     ///
     /// ```rust
     /// let asset = Asset::cw20(Addr::unchecked("mock_token"), 12345);
@@ -217,19 +227,22 @@ impl Asset {
                 })?,
                 funds: vec![],
             })),
-            AssetInfo::Native(_) => {
-                Err(StdError::generic_err("native coins do not have `send` method"))
-            }
+            AssetInfo::Native(_) => Err(StdError::generic_err(
+                "native coins do not have `send` method",
+            )),
         }
     }
 
-    /// Generate a message that transfers the asset from the sender to account `to`
+    /// Generate a message that transfers the asset from the sender to account
+    /// `to`
     ///
-    /// NOTE: It is generally neccessary to first deduct tax before calling this method.
+    /// NOTE: It is generally neccessary to first deduct tax before calling this
+    /// method.
     ///
     /// **Usage:**
-    /// The following code generates a message that sends 12345 uusd (i.e. 0.012345 UST) to Alice.
-    /// Note that due to tax, the actual deliverable amount is smaller than 12345 uusd.
+    /// The following code generates a message that sends 12345 uusd (i.e.
+    /// 0.012345 UST) to Alice. Note that due to tax, the actual deliverable
+    /// amount is smaller than 12345 uusd.
     ///
     /// ```rust
     /// let asset = Asset::native("uusd", 12345);
@@ -255,11 +268,13 @@ impl Asset {
         }
     }
 
-    /// Generate a message that draws the asset from account `from` to account `to`
+    /// Generate a message that draws the asset from account `from` to account
+    /// `to`
     ///
     /// **Usage:**
-    /// The following code generates a message that draws 69420 uMIR token from Alice's wallet to
-    /// Bob's. Note that Alice must have approve this spending for this transaction to work.
+    /// The following code generates a message that draws 69420 uMIR token from
+    /// Alice's wallet to Bob's. Note that Alice must have approve this
+    /// spending for this transaction to work.
     ///
     /// ```rust
     /// let asset = Asset::cw20("mirror_token", 69420);
@@ -280,9 +295,9 @@ impl Asset {
                 })?,
                 funds: vec![],
             })),
-            AssetInfo::Native(_) => {
-                Err(StdError::generic_err("native coins do not have `transfer_from` method"))
-            }
+            AssetInfo::Native(_) => Err(StdError::generic_err(
+                "native coins do not have `transfer_from` method",
+            )),
         }
     }
 
@@ -298,9 +313,9 @@ impl Asset {
                 )?)?;
                 Ok(res.balance)
             }
-            AssetInfo::Native(denom) => {
-                querier.query_balance(addr.as_str(), denom.as_str()).map(|c| c.amount)
-            }
+            AssetInfo::Native(denom) => querier
+                .query_balance(addr.as_str(), denom.as_str())
+                .map(|c| c.amount),
         }
     }
 }
@@ -415,7 +430,12 @@ mod tests {
         );
 
         let err = coin.send_msg("mock_contract", bin_msg);
-        assert_eq!(err, Err(StdError::generic_err("native coins do not have `send` method")));
+        assert_eq!(
+            err,
+            Err(StdError::generic_err(
+                "native coins do not have `send` method"
+            ))
+        );
 
         let msg = token.transfer_msg("alice").unwrap();
         assert_eq!(
@@ -458,7 +478,9 @@ mod tests {
         let err = coin.transfer_from_msg("bob", "charlie");
         assert_eq!(
             err,
-            Err(StdError::generic_err("native coins do not have `transfer_from` method"))
+            Err(StdError::generic_err(
+                "native coins do not have `transfer_from` method"
+            ))
         );
     }
 

@@ -29,9 +29,7 @@ impl NativeQuerier {
             .into())
             .into(),
 
-            TerraQuery::TaxCap {
-                denom,
-            } => {
+            TerraQuery::TaxCap { denom } => {
                 let cap = match self.tax_caps.get(denom) {
                     Some(cap) => cap,
                     None => {
@@ -43,11 +41,7 @@ impl NativeQuerier {
                     }
                 };
 
-                Ok(to_binary(&TaxCapResponse {
-                    cap: *cap,
-                })
-                .into())
-                .into()
+                Ok(to_binary(&TaxCapResponse { cap: *cap }).into()).into()
             }
 
             _ => Err(SystemError::InvalidRequest {
@@ -63,6 +57,7 @@ impl NativeQuerier {
     }
 
     pub fn set_tax_cap(&mut self, denom: &str, tax_cap: u128) {
-        self.tax_caps.insert(String::from(denom), Uint128::new(tax_cap));
+        self.tax_caps
+            .insert(String::from(denom), Uint128::new(tax_cap));
     }
 }

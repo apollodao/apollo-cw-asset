@@ -12,7 +12,7 @@ use crate::AssetUnchecked;
 use super::asset::{Asset, AssetBase};
 use super::asset_info::AssetInfo;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct AssetListBase<T>(pub(crate) Vec<AssetBase<T>>);
 
 #[allow(clippy::derivable_impls)] // clippy says `Default` can be derived here, but actually it can't
@@ -33,7 +33,13 @@ impl From<Vec<AssetUnchecked>> for AssetListUnchecked {
 
 impl From<AssetList> for AssetListUnchecked {
     fn from(list: AssetList) -> Self {
-        Self(list.to_vec().iter().cloned().map(|asset| asset.into()).collect())
+        Self(
+            list.to_vec()
+                .iter()
+                .cloned()
+                .map(|asset| asset.into())
+                .collect(),
+        )
     }
 }
 
@@ -65,7 +71,10 @@ where
             )));
         }
         let other_assets = value.to_vec();
-        Ok([other_assets[0].to_owned().into(), other_assets[1].to_owned().into()])
+        Ok([
+            other_assets[0].to_owned().into(),
+            other_assets[1].to_owned().into(),
+        ])
     }
 }
 
@@ -79,12 +88,16 @@ impl TryFrom<AssetList> for Vec<Coin> {
     type Error = StdError;
 
     fn try_from(list: AssetList) -> StdResult<Self> {
-        list.0.into_iter().map(|asset| asset.try_into()).collect::<StdResult<Vec<Coin>>>()
+        list.0
+            .into_iter()
+            .map(|asset| asset.try_into())
+            .collect::<StdResult<Vec<Coin>>>()
     }
 }
 
 impl AssetListUnchecked {
-    /// Validate contract address of every asset in the list, and return a new `AssetList` instance
+    /// Validate contract address of every asset in the list, and return a new
+    /// `AssetList` instance
     pub fn check(&self, api: &dyn Api) -> StdResult<AssetList> {
         let mut assets = AssetList::default();
         for asset in &self.0 {
@@ -99,7 +112,11 @@ impl fmt::Display for AssetList {
         write!(
             f,
             "{}",
-            self.0.iter().map(|asset| asset.to_string()).collect::<Vec<String>>().join(",")
+            self.0
+                .iter()
+                .map(|asset| asset.to_string())
+                .collect::<Vec<String>>()
+                .join(",")
         )
     }
 }
@@ -125,6 +142,7 @@ impl AssetList {
     }
 
     /// Return length of the asset list
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.0.len()
     }
@@ -139,8 +157,8 @@ impl AssetList {
         self.0.iter_mut()
     }
 
-    /// Returns a reference to the asset at the given index. Return `None` if the index
-    /// does not exist.
+    /// Returns a reference to the asset at the given index. Return `None` if
+    /// the index does not exist.
     pub fn get(&self, idx: usize) -> Option<&Asset> {
         self.0.get(idx)
     }
@@ -161,8 +179,8 @@ impl AssetList {
 
     /// Find an asset in the list that matches the provided asset info
     ///
-    /// Return `Some(&asset)` if found, where `&asset` is a reference to the asset found; `None` if
-    /// not found.
+    /// Return `Some(&asset)` if found, where `&asset` is a reference to the
+    /// asset found; `None` if not found.
     pub fn find(&self, info: &AssetInfo) -> Option<&Asset> {
         self.0.iter().find(|asset| asset.info == *info)
     }
@@ -181,10 +199,14 @@ impl AssetList {
 
     /// Add a new asset to the list
     ///
-    /// If asset of the same kind already exists in the list, then increment its amount; if not,
-    /// append to the end of the list.
+    /// If asset of the same kind already exists in the list, then increment its
+    /// amount; if not, append to the end of the list.
     pub fn add(&mut self, asset_to_add: &Asset) -> StdResult<&mut Self> {
-        match self.0.iter_mut().find(|asset| asset.info == asset_to_add.info) {
+        match self
+            .0
+            .iter_mut()
+            .find(|asset| asset.info == asset_to_add.info)
+        {
             Some(asset) => {
                 asset.amount = asset.amount.checked_add(asset_to_add.amount)?;
             }
@@ -205,17 +227,25 @@ impl AssetList {
 
     /// Deduct an asset from the list
     ///
-    /// The asset of the same kind and equal or greater amount must already exist in the list. If so,
-    /// deduct the amount from the asset; ifnot, throw an error.
+    /// The asset of the same kind and equal or greater amount must already
+    /// exist in the list. If so, deduct the amount from the asset; ifnot,
+    /// throw an error.
     ///
     /// If an asset's amount is reduced to zero, it is purged from the list.
     pub fn deduct(&mut self, asset_to_deduct: &Asset) -> StdResult<&mut Self> {
-        match self.0.iter_mut().find(|asset| asset.info == asset_to_deduct.info) {
+        match self
+            .0
+            .iter_mut()
+            .find(|asset| asset.info == asset_to_deduct.info)
+        {
             Some(asset) => {
                 asset.amount = asset.amount.checked_sub(asset_to_deduct.amount)?;
             }
             None => {
-                return Err(StdError::generic_err(format!("not found: {}", asset_to_deduct.info)))
+                return Err(StdError::generic_err(format!(
+                    "not found: {}",
+                    asset_to_deduct.info
+                )))
             }
         }
         Ok(self.purge())
@@ -237,14 +267,20 @@ impl AssetList {
             .collect::<StdResult<Vec<CosmosMsg>>>()
     }
 
-    /// Query balances for all assets in the list for the given address and return a new `AssetList`
+    /// Query balances for all assets in the list for the given address and
+    /// return a new `AssetList`
     pub fn query_balances<A: Into<String> + Clone>(
         &self,
         querier: &QuerierWrapper,
         addr: &Addr,
     ) -> StdResult<AssetList> {
         self.into_iter()
-            .map(|asset| Ok(Asset::new(asset.info.clone(), asset.query_balance(querier, addr)?)))
+            .map(|asset| {
+                Ok(Asset::new(
+                    asset.info.clone(),
+                    asset.query_balance(querier, addr)?,
+                ))
+            })
             .collect::<StdResult<Vec<Asset>>>()
             .map(Into::into)
     }
@@ -268,14 +304,16 @@ mod test_helpers {
     }
 
     pub fn mock_list() -> AssetList {
-        AssetList::from(vec![Asset::native("uusd", 69420u128), Asset::new(mock_token(), 88888u128)])
+        AssetList::from(vec![
+            Asset::native("uusd", 69420u128),
+            Asset::new(mock_token(), 88888u128),
+        ])
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::AssetInfoUnchecked;
-    use crate::AssetUnchecked as AU;
+    use crate::{AssetInfoUnchecked, AssetUnchecked as AU};
 
     use super::super::asset::Asset;
     use super::test_helpers::{mock_list, mock_token, uluna, uusd};
@@ -292,7 +330,10 @@ mod tests {
     #[test]
     fn displaying() {
         let list = mock_list();
-        assert_eq!(list.to_string(), String::from("uusd:69420,mock_token:88888"));
+        assert_eq!(
+            list.to_string(),
+            String::from("uusd:69420,mock_token:88888")
+        );
     }
 
     #[test]
@@ -349,7 +390,9 @@ mod tests {
         let mut list = mock_list();
         list.add_many(&mock_list()).unwrap();
 
-        let expected = mock_list().apply(|a| a.amount = a.amount * Uint128::new(2)).clone();
+        let expected = mock_list()
+            .apply(|a| a.amount = a.amount * Uint128::new(2))
+            .clone();
         assert_eq!(list, expected);
     }
 
@@ -428,8 +471,10 @@ mod tests {
 
         let list: AssetListUnchecked = vec![asset1.clone(), asset2.clone()].into();
 
-        let expected =
-            AssetList::from(vec![asset1.check(&api).unwrap(), asset2.check(&api).unwrap()]);
+        let expected = AssetList::from(vec![
+            asset1.check(&api).unwrap(),
+            asset2.check(&api).unwrap(),
+        ]);
 
         assert_eq!(list.check(&api).unwrap(), expected);
     }
@@ -471,7 +516,10 @@ mod tests {
     fn check(unchecked: Vec<AssetUnchecked>, expected: Vec<Asset>) -> StdResult<()> {
         let unchecked = AssetListUnchecked::from(unchecked);
 
-        assert_eq!(unchecked.check(&MockApi::default())?, AssetList::from(expected));
+        assert_eq!(
+            unchecked.check(&MockApi::default())?,
+            AssetList::from(expected)
+        );
 
         Ok(())
     }

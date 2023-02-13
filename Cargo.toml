@@ -3,7 +3,7 @@ name = "cw-asset"
 description = "Helper library for interacting with Cosmos assets (SDK coins and CW20 tokens)"
 version = "0.3.0"
 authors = ["larry <larry@delphidigital.io>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 repository = "https://github.com/larry0x/cw-asset"
 
