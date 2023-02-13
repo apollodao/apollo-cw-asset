@@ -5,7 +5,7 @@ use cosmwasm_std::{
     from_binary, to_binary, Addr, Api, BankMsg, Binary, Coin, CosmosMsg, QuerierWrapper, StdError,
     StdResult, Uint128, WasmMsg,
 };
-use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
+use cw20::{Cw20Coin, Cw20CoinVerified, Cw20ExecuteMsg, Cw20QueryMsg};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -108,6 +108,64 @@ impl TryInto<Coin> for &Asset {
         self.clone()
             .try_into()
             .map_err(|_| StdError::parse_err("Asset", "converting Asset to Coin"))
+    }
+}
+
+impl From<Cw20Coin> for AssetUnchecked {
+    fn from(coin: Cw20Coin) -> Self {
+        Self {
+            info: AssetInfoUnchecked::Cw20(coin.address),
+            amount: coin.amount,
+        }
+    }
+}
+
+impl From<Cw20CoinVerified> for Asset {
+    fn from(coin: Cw20CoinVerified) -> Self {
+        Self {
+            info: AssetInfo::Cw20(coin.address),
+            amount: coin.amount,
+        }
+    }
+}
+
+impl TryFrom<Asset> for Cw20CoinVerified {
+    type Error = StdError;
+
+    fn try_from(asset: Asset) -> Result<Self, Self::Error> {
+        match asset.info {
+            AssetInfo::Cw20(contract_addr) => Ok(Self {
+                address: contract_addr,
+                amount: asset.amount,
+            }),
+            _ => Err(StdError::generic_err("Cannot convert non-CW20 asset to Cw20Coin")),
+        }
+    }
+}
+
+impl TryFrom<Asset> for Cw20Coin {
+    type Error = StdError;
+
+    fn try_from(asset: Asset) -> Result<Self, Self::Error> {
+        let verified: Cw20CoinVerified = asset.try_into()?;
+        Ok(Self {
+            address: verified.address.to_string(),
+            amount: verified.amount,
+        })
+    }
+}
+
+impl TryFrom<AssetUnchecked> for Cw20Coin {
+    type Error = StdError;
+
+    fn try_from(asset: AssetUnchecked) -> Result<Self, Self::Error> {
+        match asset.info {
+            AssetInfoUnchecked::Cw20(contract_addr) => Ok(Self {
+                address: contract_addr,
+                amount: asset.amount,
+            }),
+            _ => Err(StdError::generic_err("Cannot convert non-CW20 asset to Cw20Coin")),
+        }
     }
 }
 
