@@ -74,7 +74,7 @@ impl AssetInfoUnchecked {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct AssetInfoKey {
     bytes: Vec<u8>,
 }
@@ -142,7 +142,7 @@ impl From<Addr> for AssetInfo {
 
 impl PartialEq<AssetInfo> for AssetInfoKey {
     fn eq(&self, other: &AssetInfo) -> bool {
-        self.to_owned() == AssetInfoKey::from(other)
+        self == &AssetInfoKey::from(other)
     }
 }
 

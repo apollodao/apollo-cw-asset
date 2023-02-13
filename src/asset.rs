@@ -17,7 +17,7 @@ use crate::AssetInfoUnchecked;
 
 use super::asset_info::{AssetInfo, AssetInfoBase};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct AssetBase<T> {
     pub info: AssetInfoBase<T>,
     pub amount: Uint128,
