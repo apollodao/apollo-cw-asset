@@ -269,11 +269,7 @@ impl AssetList {
 
     /// Query balances for all assets in the list for the given address and
     /// return a new `AssetList`
-    pub fn query_balances<A: Into<String> + Clone>(
-        &self,
-        querier: &QuerierWrapper,
-        addr: &Addr,
-    ) -> StdResult<AssetList> {
+    pub fn query_balances(&self, querier: &QuerierWrapper, addr: &Addr) -> StdResult<AssetList> {
         self.into_iter()
             .map(|asset| {
                 Ok(Asset::new(
