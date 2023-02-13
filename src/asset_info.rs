@@ -5,7 +5,7 @@ use cosmwasm_std::{
     to_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdError,
     StdResult, Uint128, WasmQuery,
 };
-use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
+use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg, Denom};
 
 use cw_storage_plus::{Key, KeyDeserialize, Prefixer, PrimaryKey};
 use schemars::JsonSchema;
@@ -33,6 +33,24 @@ impl From<AssetInfo> for AssetInfoUnchecked {
 impl From<&AssetInfo> for AssetInfoUnchecked {
     fn from(asset_info: &AssetInfo) -> Self {
         asset_info.clone().into()
+    }
+}
+
+impl From<Denom> for AssetInfo {
+    fn from(denom: Denom) -> Self {
+        match denom {
+            Denom::Cw20(contract_addr) => AssetInfo::Cw20(contract_addr),
+            Denom::Native(denom) => AssetInfo::Native(denom),
+        }
+    }
+}
+
+impl From<AssetInfo> for Denom {
+    fn from(asset_info: AssetInfo) -> Self {
+        match asset_info {
+            AssetInfo::Cw20(contract_addr) => Denom::Cw20(contract_addr),
+            AssetInfo::Native(denom) => Denom::Native(denom),
+        }
     }
 }
 
