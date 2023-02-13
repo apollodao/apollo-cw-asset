@@ -19,7 +19,7 @@ ignore = [
 ]
 
 [bans]
-multiple-versions = "allow" # TODO:update this
+multiple-versions = "allow"
 deny = []
 skip = []
 

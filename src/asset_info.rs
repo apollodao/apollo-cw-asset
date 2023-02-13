@@ -265,11 +265,11 @@ mod test {
         let astro = AssetInfo::cw20(Addr::unchecked("astro_token"));
         let mars = AssetInfo::cw20(Addr::unchecked("mars_token"));
 
-        assert_eq!(uluna == uusd, false);
-        assert_eq!(uluna == astro, false);
-        assert_eq!(astro == mars, false);
-        assert_eq!(uluna == uluna.clone(), true);
-        assert_eq!(astro == astro.clone(), true);
+        assert!(uluna != uusd);
+        assert!(uluna != astro);
+        assert!(astro != mars);
+        assert!(uluna == uluna.clone());
+        assert!(astro == astro.clone());
     }
 
     #[test]

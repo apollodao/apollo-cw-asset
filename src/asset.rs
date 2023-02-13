@@ -384,9 +384,9 @@ mod tests {
         let uusd = Asset::native("uusd", 69u128);
         let astro = Asset::cw20(Addr::unchecked("astro_token"), 69u128);
 
-        assert_eq!(uluna1 == uluna2, false);
-        assert_eq!(uluna1 == uusd, false);
-        assert_eq!(astro == astro.clone(), true);
+        assert!(uluna1 != uluna2);
+        assert!(uluna1 != uusd);
+        assert!(astro == astro.clone());
     }
 
     #[test]
