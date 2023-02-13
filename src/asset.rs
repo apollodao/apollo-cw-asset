@@ -310,6 +310,22 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::MockApi;
 
+    use test_case::test_case;
+
+    fn apollo() -> Asset {
+        Asset {
+            info: AssetInfo::Cw20(Addr::unchecked("apollo")),
+            amount: Uint128::new(123456u128),
+        }
+    }
+
+    fn uusd() -> Asset {
+        Asset {
+            info: AssetInfo::Native(String::from("uusd")),
+            amount: Uint128::new(123456u128),
+        }
+    }
+
     #[derive(Serialize)]
     enum MockExecuteMsg {
         MockCommand {},
@@ -517,5 +533,53 @@ mod tests {
                 amount: Uint128::new(123456u128)
             }
         );
+    }
+
+    #[test]
+    fn from_cw20coin_for_assetunchecked() {
+        let coin = Cw20Coin {
+            address: "mock_token".to_string(),
+            amount: Uint128::new(123456u128),
+        };
+        assert_eq!(
+            AssetUnchecked::cw20("mock_token".to_string(), 123456u128),
+            AssetUnchecked::from(coin)
+        );
+    }
+
+    #[test]
+    fn from_cw20coinverified_for_asset() {
+        let coin = Cw20CoinVerified {
+            address: Addr::unchecked("apollo"),
+            amount: Uint128::new(123456u128),
+        };
+        assert_eq!(apollo(), Asset::from(coin));
+    }
+
+    #[test_case(uusd() => matches Err(_) ; "native")]
+    #[test_case(apollo() => Ok(Cw20CoinVerified {
+                    address: Addr::unchecked("apollo"),
+                    amount: 123456u128.into()
+                }) ; "cw20")]
+    fn try_from_asset_for_cw20coinverified(asset: Asset) -> StdResult<Cw20CoinVerified> {
+        Cw20CoinVerified::try_from(asset)
+    }
+
+    #[test_case(uusd() => matches Err(_) ; "native")]
+    #[test_case(apollo() => Ok(Cw20Coin {
+                    address: "apollo".to_string(),
+                    amount: 123456u128.into()
+                }) ; "cw20")]
+    fn try_from_asset_for_cw20coin(asset: Asset) -> StdResult<Cw20Coin> {
+        Cw20Coin::try_from(asset)
+    }
+
+    #[test_case(uusd().into() => matches Err(_) ; "native")]
+    #[test_case(apollo().into() => Ok(Cw20Coin {
+                    address: "apollo".to_string(),
+                    amount: 123456u128.into()
+                }) ; "cw20")]
+    fn try_from_assetunchecked_for_cw20coin(asset: AssetUnchecked) -> StdResult<Cw20Coin> {
+        Cw20Coin::try_from(asset)
     }
 }
