@@ -391,7 +391,7 @@ mod tests {
         list.add_many(&mock_list()).unwrap();
 
         let expected = mock_list()
-            .apply(|a| a.amount = a.amount * Uint128::new(2))
+            .apply(|a| a.amount *= Uint128::new(2))
             .clone();
         assert_eq!(list, expected);
     }
@@ -569,7 +569,7 @@ mod tests {
     fn from_assetlist_for_vec_asset() {
         let list = mock_list();
 
-        let vec_asset = Vec::<Asset>::from(list.clone());
+        let vec_asset = Vec::<Asset>::from(list);
 
         assert_eq!(
             vec_asset,

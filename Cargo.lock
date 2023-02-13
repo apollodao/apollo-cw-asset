@@ -17,7 +17,6 @@ dependencies = [
 name = "apollo-cw-asset"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus",
  "cw20",

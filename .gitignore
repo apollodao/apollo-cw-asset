@@ -1,4 +1,6 @@
 target
-.idea
-
 .DS_Store
+.idea
+.vscode
+docs
+**/*.tmp
