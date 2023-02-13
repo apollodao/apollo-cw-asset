@@ -498,4 +498,19 @@ mod tests {
         let list = mock_list();
         assert_eq!(list.get_native_coins(), vec![Coin::new(69420, "uusd")]);
     }
+
+    #[test]
+    fn from_assetlist_for_vec_asset() {
+        let list = mock_list();
+
+        let vec_asset = Vec::<Asset>::from(list.clone());
+
+        assert_eq!(
+            vec_asset,
+            vec![
+                Asset::native("uusd", 69420u128),
+                Asset::cw20(Addr::unchecked("mock_token"), 88888u128)
+            ]
+        );
+    }
 }
