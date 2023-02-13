@@ -51,6 +51,24 @@ where
     }
 }
 
+impl<A> TryFrom<AssetList> for [A; 2]
+where
+    A: From<Asset>,
+{
+    type Error = StdError;
+
+    fn try_from(value: AssetList) -> Result<[A; 2], Self::Error> {
+        if value.len() != 2 {
+            return Err(StdError::generic_err(format!(
+                "AssetList must contain exactly 2 assets, but it contains {}",
+                value.len()
+            )));
+        }
+        let other_assets = value.to_vec();
+        Ok([other_assets[0].to_owned().into(), other_assets[1].to_owned().into()])
+    }
+}
+
 impl TryFrom<AssetList> for Vec<Coin> {
     type Error = StdError;
 
@@ -431,16 +449,16 @@ mod tests {
     }
 
     #[test_case(vec![], vec![]; "empty")]
-    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin2", 67890u128)], 
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin2", 67890u128)],
                 vec![Asset::native("coin1", 12345u128), Asset::native("coin2", 67890u128)];
                 "native")]
-    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin1", 67890u128)], 
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin1", 67890u128)],
                 vec![Asset::native("coin1", 80235u128)] ;
                 "duplicates")]
-    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("coin2", 67890u128)], 
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("coin2", 67890u128)],
                 vec![Asset::native("coin1", 12345u128), Asset::cw20(Addr::unchecked("coin2"), 67890u128)];
                 "cw20 valid mock address")]
-    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("co", 67890u128)], 
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("co", 67890u128)],
                 vec![Asset::native("coin1", 12345u128), Asset::cw20(Addr::unchecked("co"), 67890u128)]
                 => matches Err(_) ;
                 "cw20 invalid mock address")]
