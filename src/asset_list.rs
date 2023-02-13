@@ -51,6 +51,12 @@ where
     }
 }
 
+impl From<AssetList> for Vec<Asset> {
+    fn from(list: AssetList) -> Self {
+        list.0
+    }
+}
+
 impl TryFrom<AssetList> for Vec<Coin> {
     type Error = StdError;
 
@@ -431,16 +437,16 @@ mod tests {
     }
 
     #[test_case(vec![], vec![]; "empty")]
-    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin2", 67890u128)], 
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin2", 67890u128)],
                 vec![Asset::native("coin1", 12345u128), Asset::native("coin2", 67890u128)];
                 "native")]
-    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin1", 67890u128)], 
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::native("coin1", 67890u128)],
                 vec![Asset::native("coin1", 80235u128)] ;
                 "duplicates")]
-    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("coin2", 67890u128)], 
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("coin2", 67890u128)],
                 vec![Asset::native("coin1", 12345u128), Asset::cw20(Addr::unchecked("coin2"), 67890u128)];
                 "cw20 valid mock address")]
-    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("co", 67890u128)], 
+    #[test_case(vec![AU::native("coin1", 12345u128), AU::cw20("co", 67890u128)],
                 vec![Asset::native("coin1", 12345u128), Asset::cw20(Addr::unchecked("co"), 67890u128)]
                 => matches Err(_) ;
                 "cw20 invalid mock address")]
@@ -491,5 +497,20 @@ mod tests {
     fn get_native_coins() {
         let list = mock_list();
         assert_eq!(list.get_native_coins(), vec![Coin::new(69420, "uusd")]);
+    }
+
+    #[test]
+    fn from_assetlist_for_vec_asset() {
+        let list = mock_list();
+
+        let vec_asset = Vec::<Asset>::from(list.clone());
+
+        assert_eq!(
+            vec_asset,
+            vec![
+                Asset::native("uusd", 69420u128),
+                Asset::cw20(Addr::unchecked("mock_token"), 88888u128)
+            ]
+        );
     }
 }
