@@ -51,6 +51,24 @@ where
     }
 }
 
+impl<A> TryFrom<AssetList> for [A; 2]
+where
+    A: From<Asset>,
+{
+    type Error = StdError;
+
+    fn try_from(value: AssetList) -> Result<[A; 2], Self::Error> {
+        if value.len() != 2 {
+            return Err(StdError::generic_err(format!(
+                "AssetList must contain exactly 2 assets, but it contains {}",
+                value.len()
+            )));
+        }
+        let other_assets = value.to_vec();
+        Ok([other_assets[0].to_owned().into(), other_assets[1].to_owned().into()])
+    }
+}
+
 impl From<AssetList> for Vec<Asset> {
     fn from(list: AssetList) -> Self {
         list.0
