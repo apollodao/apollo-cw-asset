@@ -12,7 +12,7 @@ use crate::AssetUnchecked;
 use super::asset::{Asset, AssetBase};
 use super::asset_info::AssetInfo;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct AssetListBase<T>(pub(crate) Vec<AssetBase<T>>);
 
 #[allow(clippy::derivable_impls)] // clippy says `Default` can be derived here, but actually it can't
@@ -125,6 +125,7 @@ impl AssetList {
     }
 
     /// Return length of the asset list
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.0.len()
     }
