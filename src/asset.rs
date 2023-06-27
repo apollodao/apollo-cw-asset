@@ -176,6 +176,26 @@ impl TryFrom<AssetUnchecked> for Cw20Coin {
     }
 }
 
+#[cfg(feature = "astroport")]
+impl From<astroport::asset::Asset> for Asset {
+    fn from(asset: astroport::asset::Asset) -> Self {
+        Self {
+            info: asset.info.into(),
+            amount: asset.amount,
+        }
+    }
+}
+
+#[cfg(feature = "astroport")]
+impl From<Asset> for astroport::asset::Asset {
+    fn from(asset: Asset) -> Self {
+        Self {
+            info: asset.info.into(),
+            amount: asset.amount,
+        }
+    }
+}
+
 impl Asset {
     /// Create a new `AssetBase` instance based on given asset info and amount
     pub fn new<B: Into<Uint128>>(info: AssetInfo, amount: B) -> Self {
