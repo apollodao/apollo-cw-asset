@@ -55,6 +55,28 @@ impl From<AssetInfo> for Denom {
     }
 }
 
+#[cfg(feature = "astroport")]
+impl From<astroport::asset::AssetInfo> for AssetInfo {
+    fn from(value: astroport::asset::AssetInfo) -> Self {
+        match value {
+            astroport::asset::AssetInfo::Token { contract_addr } => AssetInfo::Cw20(contract_addr),
+            astroport::asset::AssetInfo::NativeToken { denom } => AssetInfo::Native(denom),
+        }
+    }
+}
+
+#[cfg(feature = "astroport")]
+impl From<AssetInfo> for astroport::asset::AssetInfo {
+    fn from(value: AssetInfo) -> Self {
+        match value {
+            AssetInfoBase::Cw20(addr) => astroport::asset::AssetInfo::Token {
+                contract_addr: addr,
+            },
+            AssetInfoBase::Native(denom) => astroport::asset::AssetInfo::NativeToken { denom },
+        }
+    }
+}
+
 impl AssetInfoUnchecked {
     /// Validate contract address (if any) and returns a new `AssetInfo`
     /// instance
@@ -328,5 +350,43 @@ mod test {
     fn cw20_asset_info_unchecked() {
         let info = AssetInfoUnchecked::Cw20("mock_token".to_string());
         assert_eq!(AssetInfoUnchecked::Cw20("mock_token".to_string()), info);
+    }
+
+    #[test]
+    #[cfg(feature = "astroport")]
+    fn from_astro_asset_info() {
+        let info = astroport::asset::AssetInfo::Token {
+            contract_addr: Addr::unchecked("mock_token"),
+        };
+        let info2: AssetInfo = info.into();
+        assert_eq!(info2, AssetInfo::Cw20(Addr::unchecked("mock_token")));
+
+        let info = astroport::asset::AssetInfo::NativeToken {
+            denom: "uusd".to_string(),
+        };
+        let info2: AssetInfo = info.into();
+        assert_eq!(info2, AssetInfo::Native("uusd".to_string()));
+    }
+
+    #[test]
+    #[cfg(feature = "astroport")]
+    fn into_astro_asset_info() {
+        let info = AssetInfo::Cw20(Addr::unchecked("mock_token"));
+        let info2: astroport::asset::AssetInfo = info.into();
+        assert_eq!(
+            info2,
+            astroport::asset::AssetInfo::Token {
+                contract_addr: Addr::unchecked("mock_token")
+            }
+        );
+
+        let info = AssetInfo::Native("uusd".to_string());
+        let info2: astroport::asset::AssetInfo = info.into();
+        assert_eq!(
+            info2,
+            astroport::asset::AssetInfo::NativeToken {
+                denom: "uusd".to_string()
+            }
+        );
     }
 }

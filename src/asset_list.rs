@@ -25,6 +25,17 @@ impl<T> Default for AssetListBase<T> {
 pub type AssetListUnchecked = AssetListBase<String>;
 pub type AssetList = AssetListBase<Addr>;
 
+#[cfg(feature = "astroport")]
+impl From<AssetList> for Vec<astroport::asset::Asset> {
+    fn from(value: AssetList) -> Self {
+        value
+            .0
+            .into_iter()
+            .map(|asset| asset.into())
+            .collect::<Vec<astroport::asset::Asset>>()
+    }
+}
+
 impl From<Vec<AssetUnchecked>> for AssetListUnchecked {
     fn from(assets: Vec<AssetUnchecked>) -> Self {
         Self(assets)
@@ -305,6 +316,26 @@ mod test_helpers {
             Asset::new(mock_token(), 88888u128),
         ])
     }
+
+    #[cfg(feature = "astroport")]
+    pub fn mock_astro_list() -> Vec<astroport::asset::Asset> {
+        use cosmwasm_std::Uint128;
+
+        vec![
+            astroport::asset::Asset {
+                info: astroport::asset::AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                amount: Uint128::from(69420u128),
+            },
+            astroport::asset::Asset {
+                info: astroport::asset::AssetInfo::Token {
+                    contract_addr: Addr::unchecked("mock_token"),
+                },
+                amount: Uint128::from(88888u128),
+            },
+        ]
+    }
 }
 
 #[cfg(test)]
@@ -572,5 +603,17 @@ mod tests {
                 Asset::cw20(Addr::unchecked("mock_token"), 88888u128)
             ]
         );
+    }
+
+    #[test]
+    #[cfg(feature = "astroport")]
+    fn from_assetlist_for_vec_astro_asset_info() {
+        use crate::asset_list::test_helpers::mock_astro_list;
+
+        let list = mock_list();
+
+        let vec_asset_info = Vec::<astroport::asset::Asset>::from(list);
+
+        assert_eq!(vec_asset_info, mock_astro_list());
     }
 }
