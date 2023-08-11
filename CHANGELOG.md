@@ -9,5 +9,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `impl From<AssetInfo> for Asset { ... }` to convert `AssetInfo` to `Asset` with zero amount.
+- `fn to_asset` method on `AssetInfo` to convert to `Asset` with the specified amount.
 - `fn query_asset_info_balances` method on `AssetList` to query balances of a `Vec<AssetInfo>`.
