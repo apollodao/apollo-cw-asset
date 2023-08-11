@@ -14,11 +14,11 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Install nightly toolchain
+      - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: stable
           components: rustfmt, clippy
 
       - name: Install cargo-machete
@@ -30,14 +30,14 @@ jobs:
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           command: clippy
           args: --all-features -- -D warnings
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           command: fmt
           args: --all -- --check --verbose
 
