@@ -292,8 +292,8 @@ impl AssetList {
             .map(Into::into)
     }
 
-    /// Queries balances for all `AssetInfo` objects in the given vec for the given address and
-    /// return a new `AssetList`
+    /// Queries balances for all `AssetInfo` objects in the given vec for the
+    /// given address and return a new `AssetList`
     pub fn query_asset_info_balances(
         asset_infos: Vec<AssetInfo>,
         querier: &QuerierWrapper,
