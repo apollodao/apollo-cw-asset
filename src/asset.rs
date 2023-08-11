@@ -35,6 +35,15 @@ impl From<Asset> for AssetUnchecked {
     }
 }
 
+impl From<AssetInfo> for Asset {
+    fn from(value: AssetInfo) -> Self {
+        Self {
+            info: value,
+            amount: Uint128::zero(),
+        }
+    }
+}
+
 impl AssetUnchecked {
     pub fn new<A: Into<Uint128>>(info: AssetInfoUnchecked, amount: A) -> Self {
         Self {

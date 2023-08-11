@@ -291,6 +291,25 @@ impl AssetList {
             .collect::<StdResult<Vec<Asset>>>()
             .map(Into::into)
     }
+
+    /// Queries balances for all `AssetInfo` objects in the given vec for the given address and
+    /// return a new `AssetList`
+    pub fn query_asset_info_balances(
+        asset_infos: Vec<AssetInfo>,
+        querier: &QuerierWrapper,
+        addr: &Addr,
+    ) -> StdResult<AssetList> {
+        asset_infos
+            .into_iter()
+            .map(|asset_info| {
+                Ok(Asset::new(
+                    asset_info.clone(),
+                    asset_info.query_balance(querier, addr)?,
+                ))
+            })
+            .collect::<StdResult<Vec<Asset>>>()
+            .map(Into::into)
+    }
 }
 
 #[cfg(test)]

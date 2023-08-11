@@ -1,7 +1,7 @@
 [package]
 name = "apollo-cw-asset"
 description = "Helper library for interacting with Cosmos assets (SDK coins and CW20 tokens)"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["larry <larry@delphidigital.io>", "Apollo DAO Contributors <shared@apollo.farm>"]
 edition = "2021"
 license = "MIT"
