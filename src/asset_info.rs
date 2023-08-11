@@ -12,6 +12,8 @@ use cw_storage_plus::{Key, KeyDeserialize, Prefixer, PrimaryKey};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::Asset;
+
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Hash, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AssetInfoBase<T> {
@@ -261,6 +263,14 @@ impl AssetInfo {
 
     pub fn is_native(&self) -> bool {
         matches!(self, AssetInfo::Native(_))
+    }
+
+    /// Create a new asset from the `AssetInfo` with the given amount
+    pub fn to_asset(&self, amount: impl Into<Uint128>) -> Asset {
+        Asset {
+            info: self.clone(),
+            amount: amount.into(),
+        }
     }
 }
 
