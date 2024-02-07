@@ -366,8 +366,8 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::MockApi;
     use cosmwasm_std::{
-        to_binary, BankMsg, Coin, CosmosMsg, Decimal, OverflowError, OverflowOperation, Uint128,
-        WasmMsg,
+        to_json_binary, BankMsg, Coin, CosmosMsg, Decimal, OverflowError, OverflowOperation,
+        Uint128, WasmMsg,
     };
     use cw20::Cw20ExecuteMsg;
 
@@ -490,7 +490,7 @@ mod tests {
                 }),
                 CosmosMsg::Wasm(WasmMsg::Execute {
                     contract_addr: String::from("mock_token"),
-                    msg: to_binary(&Cw20ExecuteMsg::Transfer {
+                    msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
                         recipient: String::from("alice"),
                         amount: Uint128::new(88888)
                     })

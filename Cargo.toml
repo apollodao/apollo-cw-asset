@@ -15,7 +15,7 @@ default = []
 astroport = ["dep:astroport"]
 
 [dependencies]
-cosmwasm-std = "1"
+cosmwasm-std = "1.5.3"
 cw-storage-plus = "1.0.1"
 cw20 = "1.0.1"
 schemars = "0.8.11"
