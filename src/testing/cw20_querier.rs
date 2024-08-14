@@ -1,4 +1,4 @@
-use cosmwasm_std::{to_binary, Addr, QuerierResult, SystemError, Uint128};
+use cosmwasm_std::{to_json_binary, Addr, QuerierResult, SystemError, Uint128};
 use cw20::{BalanceResponse, Cw20QueryMsg};
 use std::collections::HashMap;
 
@@ -36,7 +36,7 @@ impl Cw20Querier {
                     }
                 };
 
-                Ok(to_binary(&BalanceResponse { balance: *balance }).into()).into()
+                Ok(to_json_binary(&BalanceResponse { balance: *balance }).into()).into()
             }
 
             query => Err(SystemError::InvalidRequest {

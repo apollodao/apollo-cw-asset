@@ -1,4 +1,4 @@
-use cosmwasm_std::{to_binary, Decimal, QuerierResult, SystemError, Uint128};
+use cosmwasm_std::{to_json_binary, Decimal, QuerierResult, SystemError, Uint128};
 use std::collections::HashMap;
 use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraRoute};
 
@@ -23,7 +23,7 @@ impl NativeQuerier {
 
     fn handle_treasury_query(&self, query_data: &TerraQuery) -> QuerierResult {
         match query_data {
-            TerraQuery::TaxRate {} => Ok(to_binary(&TaxRateResponse {
+            TerraQuery::TaxRate {} => Ok(to_json_binary(&TaxRateResponse {
                 rate: self.tax_rate,
             })
             .into())
@@ -41,7 +41,7 @@ impl NativeQuerier {
                     }
                 };
 
-                Ok(to_binary(&TaxCapResponse { cap: *cap }).into()).into()
+                Ok(to_json_binary(&TaxCapResponse { cap: *cap }).into()).into()
             }
 
             _ => Err(SystemError::InvalidRequest {
